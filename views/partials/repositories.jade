@@ -1,0 +1,138 @@
+p Active Repositories
+p
+.repositories-page
+
+	.repositories-nav
+		repositories-nav-buttons(ng-hide="repoList.length == 0")
+			button.btn.btn-secondary(ng-show="currentFile" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="deleteFile()" )|delete
+			button.btn.btn-secondary(ng-show="selectedFile && selectedFile.type != \"repo\"" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="addFile()" )|add
+
+		span(ng-if="repoList.length==0") no repositories defined
+		abn-tree(ng-if="repoData.length>0" tree-data="repoData" tree-control="repoTree" on-select="repo_tree_handler(branch)" expand-level="2"  )
+	.repositories-control
+		.row
+			.col-md-12
+				.job-message-block.pull-left(ng-show="repo_message")
+					{{repo_message}}
+		.row
+			.col-md-12.col-lg-12
+				tabset
+					tab(ng-show="selectedFile" heading="{{repo_tabs[0].title}}" active="repo_tabs[0].active" disabled="repo_tabs[0].disabled")
+						.row
+							.col-md-9.col-lg-12.repositories-textarea(id="jsoneditor" ng-show="selectedFile")
+					tab(ng-show="selectedRepo" heading="{{repo_tabs[1].title}}" active="repo_tabs[1].active" disabled="repo_tabs[1].disabled")
+						.row
+							.col-md-12.col-lg-12
+								form.form-inline(role="form")
+									form-group
+										label.sr-only(for="repoName")
+										input(type="text" id="repoName" name="repoName" ng-model='selectedRepo.label' value="{{selectedRepo.label}}")
+									form-group
+										label.sr-only(for="repoPath")
+										input(type="text" id="repoPath" name="repoPath" ng-model='selectedRepo.path' value="{{selectedRepo.path}}")
+									form-group.pull-right
+										| &nbsp;
+										button.btn.btn-primary(ng-click='updateRepo(newRepo)' ) Update
+						.row
+							.col-md-12.col-lg-12
+								a.btn.btn-primary.pull-right(href="/repo/downloadRepoTarBall?path={{selectedRepo.path}}&name={{selectedRepo.label}}" download="{{selectedRepo.label}}.tar.gz" target="_self")
+										| Download Tarball
+									
+			
+							
+					tab(heading="{{repo_tabs[2].title}}" active="repo_tabs[2].active" disabled="repo_tabs[2].disabled")
+						.row.agent-table-header
+							.col-md-12.col-lg-12
+								label New File Repository
+								form.form-inline(role="form")
+									form-group
+										label.sr-only(for="repoName")
+										input(type="text" id="repoName" name="repoName" ng-model='newRepo.name' placeholder="Enter name*" required)
+									form-group
+										label.sr-only(for="repoPath")
+										input(type="text" id="repoPath" name="repoPath" ng-model='newRepo.path' placeholder="Enter file path*" required)
+									form-group.pull-right
+										| &nbsp;
+										button.btn.btn-primary(ng-click='addRepo(newRepo)' ) Create empty file repository
+						.row
+							.col-md-12.col-lg-12
+								label.pull-right -- OR -- 
+						.row
+							.col-md-12.col-lg-12
+								form.form-inline(role="form")
+									form-group
+										label.sr-only(for="gitUser")
+										input(type="text" id="gitUser" name="gitUser" ng-model='newRepo.gitUser' size="10" placeholder="git user")
+									form-group
+										label.sr-only(for="host")
+										input(type="password" id="gitPassword" name="gitPassword" ng-model='newRepo.gitPassword' size="10" placeholder="git password")
+									form-group
+										label.sr-only(for="port")
+										input(type="text" id="gitRepo" name="gitRepo" ng-model='newRepo.gitRepo' placeholder="git URL*" required)
+									form-group.pull-right
+										| &nbsp;
+										button.btn.btn-primary(ng-click='importFromGIT(newRepo)' ) Import from GIT
+						
+						.row
+							.col-md-12.col-lg-12
+								label.pull-right -- OR -- 
+						.row
+							.col-md-6.col-lg-6
+								progressbar(ng-show="uploadProgress >0" animate="uploadProgress" value="uploadProgress" type="success")
+									{{uploadProgress}}%
+							.col-md-6.col-lg-6
+								form.form-inline(role="form" action="...", method="post", enctype="multipart/form-data")
+									form-group.pull-right
+										label.sr.only(for="fileName")
+										span.btn.btn-primary.btn-upload-file
+											| Import from tarball 
+											input(type="file" ng-model='newRepo.fileName' name="displayImage" ng-file-select="onFileSelect($files, newRepo)" data-multiple="false")
+						.row
+							.col-md-12.col-lg-12
+								label.pull-right -- OR -- 
+						.row
+							.col-md-12.col-lg-12
+								form.form-inline(role="form")
+									form-group
+										label.sr-only(for="hostRepoName")
+										input(type="text" id="hostRepoName" name="hostRepoName" ng-model='newRepo.hostRepoName' placeholder="host repo name*" required)
+									form-group
+										label.sr-only(for="host")
+										input(type="text" id="host" name="host" ng-model='newRepo.host' placeholder="Enter repo host*" required)
+									form-group
+										label.sr-only(for="port")
+										input(type="text" id="host" name="port" ng-model='newRepo.port' placeholder="port*" size="5" required)
+									form-group.pull-right
+										| &nbsp;
+										button.btn.btn-primary(ng-click='importFromHost(newRepo)' ) Import from server
+						
+									
+									
+				
+									
+ 
+div
+	script(type="text/ng-template" id="directoryWarning")
+		.modal-header
+			h3.modal-title Directory delete requested
+		.modal-body
+			ul
+				| Are you sure?
+		.modal-footer
+			button.btn.btn-primary(ng-click="ok()") OK
+			button.btn.btn-warning(ng-click="cancel()") Cancel
+			
+div
+	script(type="text/ng-template" id="addFile")
+		.modal-header
+			h3.modal-title Add a file
+		.modal-body
+			ul
+				Add New File to : {{selectedNode.path}}
+				input(type="text" name="newFileName" ng-model='newFileName')
+				
+		.modal-footer
+			button.btn.btn-primary(ng-click="addFile(newFileName)") Add File
+			button.btn.btn-warning(ng-hide="selectedNode.type != 'folder'" ng-click="addDirectory(newFileName)") Add Directory
+			button.btn.btn-warning(ng-click="cancel()") Cancel
+					

@@ -1,0 +1,47 @@
+extends layout
+
+block content
+	div(ng-controller='AppCtrl') 
+		.qs-header
+			.navbar.navbar-default.navbar-static-top(role='navigation')
+				.navbar-header
+					button.navbar-toggle(type='button', data-toggle='collapse', data-target='.navbar-collapse')
+						span.sr-only Toggle navigation
+				.navbar-collapse.collapse
+					.logo
+						img(src="/images/robot.png")
+					.qs-navbar
+						ul.serverName
+							| {{serverInfo.name}}:{{serverInfo.port}}
+						ul.nav.navbar-nav
+							- var obj = { '/repositories':'Repositories',  '/agents':'Agents', '/jobs':'Jobs', '/workflows':'Workflows', '/logs':'Logs',  '/about':'About'  }
+								- each val, key in obj
+									- if (id == key)
+										li.active
+											a(href='#{key}') #{val}
+									- else            
+										li
+											a(href='#{key}') #{val}
+		.qs-container(ng-view)
+		.qs-footer
+			|  Started: {{serverInfo.started}} Copyright 2014 v
+			span(app-version)
+		
+		script(src='js/lib/angular-file-upload/angular-file-upload-shim.min.js')
+		script(src='js/lib/angular-1.2.9/angular.js')
+		script(src='js/lib/angular-1.2.9/angular-route.js')
+		script(src='js/lib/angular-file-upload/angular-file-upload.min.js')
+		script(src='js/app.js')
+		script(src='js/services.js')
+		script(src='js/qs_repository.js')
+		script(src='js/qs_workflow.js')
+		script(src='js/controllers.js')
+		script(src='js/filters.js')
+		script(src='js/directives.js')
+		script(src='js/socket.io.js')
+		script(src='js/ui-bootstrap-tpls-0.11.0.min.js')
+		script(src='js/abn_tree_directive.js')
+		script(src='js/jsoneditor.js')
+		script(src='js/lib/ace/ace.js')
+		script(src='js/lib/jsonlint/jsonlint.js')
+		script(src='js/autofill-event.js')

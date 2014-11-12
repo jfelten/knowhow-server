@@ -1,0 +1,281 @@
+/*
+ * Import nib
+ */
+@import 'nib'
+
+/*
+ * Grab a custom font from Google
+ 
+@import url('http://fonts.googleapis.com/css?family=Quicksand')
+*/
+/*
+ * Nib provides a CSS reset
+ */
+global-reset()
+
+/*
+ * Store the main color and
+ * background color as variables
+ */
+main-color = #fa5b4d
+background-color = #faf9f0
+
+body
+  font-family 'Georgia'
+  background-color background-color
+  color #444
+
+header
+  font-family 'Quicksand'
+  padding 50px 10px
+  color #fff
+  font-size 25px
+  text-align center
+
+  /*
+   * Note the use of the `main-color`
+   * variable and the `darken` function
+   */
+  background-color main-color
+  border-bottom 1px solid darken(main-color, 30%)
+  text-shadow 0px -1px 0px darken(main-color, 30%)
+
+.container
+  width 500px
+  margin 50px auto
+  overflow hidden
+
+.main-content
+  float left
+  width 300px
+
+  p
+    margin-bottom 20px
+
+.sidebar
+  float left
+  width 200px
+
+  .widget
+
+    /*
+     * Note the lack of vendor
+     * prefixes here. Nib will
+     * add them for us
+     */
+    border-radius 3px
+    border 1px solid #ccc
+    margin-left 20px
+    background-color background-color
+    box-shadow inset 0px 0px 0px 3px rgba(#fff, 0.8), 0px 3px 0px -2px rgba(#000, 0.1)
+
+    h1
+      font-family 'Quicksand'
+      margin 13px 10px 4px
+      padding-bottom 10px
+      border-bottom 1px dotted #ddd
+      border-radius 2px 2px 0px 0px
+      margin-bottom 10px
+
+    p
+      font-size 13px
+      padding 0px 10px
+      margin-bottom 10px
+
+p
+  line-height 1.8
+  
+.jobs-page
+ 	float top
+.jobs-nav
+	padding 0px 10px 0px 0px
+	float left
+	width 350px
+	.jobs-buttons
+		float right
+	
+.jobs-control
+	float bottom
+	width 800px 
+	height: 750px
+	float left
+.job-message-block
+	float right
+	color red
+.jobs-agent-select
+	float left
+.job-control-buttons
+	float right
+	align right
+	border 1
+.jobs-textarea
+	height: 650px
+.env-textarea
+	height: 300px
+.workflow-textarea
+	height: 400px
+
+.workflows-page
+ 	float top
+.workflows-nav
+	padding 0px 10px 10px 0px
+	float left
+	width 350px
+	.workflows-nav-buttons
+		float top
+		clear left
+	.workflows-tree
+		float bottom
+	
+.workflows-control
+	float bottom
+	width 600px 
+	height: 750px
+	float left
+	.workflows-message-block
+		float right
+		color red
+	.workflows-buttons
+		float right
+	.workflows-textarea
+		width 800px 
+		height: 700px
+.workflow-env-container
+	overflow-y scroll
+	overflow-x scroll
+	width 800px 
+	height 300px
+
+.repositories-page
+ 	float top
+.repositories-nav
+	padding 0px 10px 10px 0px
+	float left
+	width 350px
+	.repositories-nav-buttons
+		float top
+		clear left
+	.repositories-tree
+		float bottom
+	
+.repositories-control
+	float bottom
+	width 600px 
+	height: 750px
+	float left
+	.repositories-message-block
+		float right
+		color red
+	.repositories-buttons
+		float right
+	.repositories-textarea
+		width 800px 
+		height: 700px
+	
+.agent-form
+	h2
+		font-family 'Quicksand'
+		padding 2px 10px
+		font-size 16px
+		text-align left 
+	td
+		font-family 'Quicksand'
+		padding 2px 1px
+		font-size 13px
+		text-align center 
+
+.agent-list
+	h2
+		font-family 'Quicksand'
+		padding 2px 10px
+		font-size 16px
+		text-align center
+	td
+		font-family 'Quicksand'
+		padding 2px 10px
+		font-size 14px
+		text-align left
+	.odd
+		background-color #F8F8F8 
+	.key
+		vertical-align middle
+		horizontal-align middle
+		
+.agent-ready
+	color green
+.agent-error
+	color red
+.agent-busy
+	color yellow
+
+.agent-table
+	border: solid 1px black 
+	border-radius: 10px 
+	padding: 0px
+	
+.agent-table-header
+	background-color #f0f0f0
+	border-top-left-radius 10px
+	border-top-right-radius 10px;	
+	
+.qs-header
+	.logo
+		padding 10px 10px
+		float left
+	.serverName
+		vertical-align middle
+		horizontal-align middle
+		float bottom
+		color red
+		font-size 18px
+		padding-left 99px
+		padding-right 15px
+		padding-top 15px
+		padding-bottom 0px
+		
+.qs-navbar
+	float bottom
+		
+.qs-container
+	float bottom
+		
+.qs-footer
+  float top
+  text-align left
+  clear left
+  width 100%
+  margin 50px auto
+  border-top 1px dotted #ccc
+  padding-top 5px
+  font-size 13px
+
+.blink {
+  animation: blink 1s steps(5, start) infinite;
+  -webkit-animation: blink 1s steps(5, start) infinite;
+}
+@keyframes blink {
+  to { visibility: hidden; }
+}
+@-webkit-keyframes blink {
+  to { visibility: hidden; }
+}
+
+.btn-upload-file {
+    position relative
+    overflow hidden
+}
+.btn-upload-file input[type=file] {
+    position absolute
+    top 0
+    right 0
+    min-width 100%
+    min-height 100%
+    font-size 100px
+    text-align right
+    filter alpha
+    opacity 0
+    outline none
+    background white
+    cursor inherit
+    display block
+}

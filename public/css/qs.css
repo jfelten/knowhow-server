@@ -1,0 +1,416 @@
+/*
+ * Import nib
+ */
+/*
+ * Grab a custom font from Google
+ 
+@import url('http://fonts.googleapis.com/css?family=Quicksand')
+*/
+/*
+ * Nib provides a CSS reset
+ */
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-weight: inherit;
+  font-style: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+body {
+  line-height: 1;
+  color: #000;
+  background: #fff;
+}
+ol,
+ul {
+  list-style: none;
+}
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  vertical-align: middle;
+}
+caption,
+th,
+td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle;
+}
+a img {
+  border: none;
+}
+/*
+ * Store the main color and
+ * background color as variables
+ */
+body {
+  font-family: 'Georgia';
+  background-color: #faf9f0;
+  color: #444;
+}
+header {
+  font-family: 'Quicksand';
+  padding: 50px 10px;
+  color: #fff;
+  font-size: 25px;
+  text-align: center;
+/*
+   * Note the use of the `main-color`
+   * variable and the `darken` function
+   */
+  background-color: #fa5b4d;
+  border-bottom: 1px solid #df1806;
+  text-shadow: 0px -1px 0px #df1806;
+}
+.container {
+  width: 500px;
+  margin: 50px auto;
+  overflow: hidden;
+}
+.main-content {
+  float: left;
+  width: 300px;
+}
+.main-content p {
+  margin-bottom: 20px;
+}
+.sidebar {
+  float: left;
+  width: 200px;
+}
+.sidebar .widget {
+/*
+     * Note the lack of vendor
+     * prefixes here. Nib will
+     * add them for us
+     */
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  margin-left: 20px;
+  background-color: #faf9f0;
+  -webkit-box-shadow: inset 0px 0px 0px 3px rgba(255,255,255,0.8), 0px 3px 0px -2px rgba(0,0,0,0.1);
+  box-shadow: inset 0px 0px 0px 3px rgba(255,255,255,0.8), 0px 3px 0px -2px rgba(0,0,0,0.1);
+}
+.sidebar .widget h1 {
+  font-family: 'Quicksand';
+  margin: 13px 10px 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px dotted #ddd;
+  -webkit-border-radius: 2px 2px 0px 0px;
+  border-radius: 2px 2px 0px 0px;
+  margin-bottom: 10px;
+}
+.sidebar .widget p {
+  font-size: 13px;
+  padding: 0px 10px;
+  margin-bottom: 10px;
+}
+p {
+  line-height: 1.8;
+}
+.jobs-page {
+  float: top;
+}
+.jobs-nav {
+  padding: 0px 10px 0px 0px;
+  float: left;
+  width: 350px;
+}
+.jobs-nav .jobs-buttons {
+  float: right;
+}
+.jobs-control {
+  float: bottom;
+  width: 800px;
+  height: 750px;
+  float: left;
+}
+.job-message-block {
+  float: right;
+  color: #f00;
+}
+.jobs-agent-select {
+  float: left;
+}
+.job-control-buttons {
+  float: right;
+  align: right;
+  border: 1;
+}
+.jobs-textarea {
+  height: 650px;
+}
+.env-textarea {
+  height: 300px;
+}
+.workflow-textarea {
+  height: 400px;
+}
+.workflows-page {
+  float: top;
+}
+.workflows-nav {
+  padding: 0px 10px 10px 0px;
+  float: left;
+  width: 350px;
+}
+.workflows-nav .workflows-nav-buttons {
+  float: top;
+  clear: left;
+}
+.workflows-nav .workflows-tree {
+  float: bottom;
+}
+.workflows-control {
+  float: bottom;
+  width: 600px;
+  height: 750px;
+  float: left;
+}
+.workflows-control .workflows-message-block {
+  float: right;
+  color: #f00;
+}
+.workflows-control .workflows-buttons {
+  float: right;
+}
+.workflows-control .workflows-textarea {
+  width: 800px;
+  height: 700px;
+}
+.workflow-env-container {
+  overflow-y: scroll;
+  overflow-x: scroll;
+  width: 800px;
+  height: 300px;
+}
+.repositories-page {
+  float: top;
+}
+.repositories-nav {
+  padding: 0px 10px 10px 0px;
+  float: left;
+  width: 350px;
+}
+.repositories-nav .repositories-nav-buttons {
+  float: top;
+  clear: left;
+}
+.repositories-nav .repositories-tree {
+  float: bottom;
+}
+.repositories-control {
+  float: bottom;
+  width: 600px;
+  height: 750px;
+  float: left;
+}
+.repositories-control .repositories-message-block {
+  float: right;
+  color: #f00;
+}
+.repositories-control .repositories-buttons {
+  float: right;
+}
+.repositories-control .repositories-textarea {
+  width: 800px;
+  height: 700px;
+}
+.agent-form h2 {
+  font-family: 'Quicksand';
+  padding: 2px 10px;
+  font-size: 16px;
+  text-align: left;
+}
+.agent-form td {
+  font-family: 'Quicksand';
+  padding: 2px 1px;
+  font-size: 13px;
+  text-align: center;
+}
+.agent-list h2 {
+  font-family: 'Quicksand';
+  padding: 2px 10px;
+  font-size: 16px;
+  text-align: center;
+}
+.agent-list td {
+  font-family: 'Quicksand';
+  padding: 2px 10px;
+  font-size: 14px;
+  text-align: left;
+}
+.agent-list .odd {
+  background-color: #f8f8f8;
+}
+.agent-list .key {
+  vertical-align: middle;
+  horizontal-align: middle;
+}
+.agent-ready {
+  color: #008000;
+}
+.agent-error {
+  color: #f00;
+}
+.agent-busy {
+  color: #ff0;
+}
+.agent-table {
+  border: solid 1px #000;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  padding: 0px;
+}
+.agent-table-header {
+  background-color: #f0f0f0;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+.qs-header .logo {
+  padding: 10px 10px;
+  float: left;
+}
+.qs-header .serverName {
+  vertical-align: middle;
+  horizontal-align: middle;
+  float: bottom;
+  color: #f00;
+  font-size: 18px;
+  padding-left: 99px;
+  padding-right: 15px;
+  padding-top: 15px;
+  padding-bottom: 0px;
+}
+.qs-navbar {
+  float: bottom;
+}
+.qs-container {
+  float: bottom;
+}
+.qs-footer {
+  float: top;
+  text-align: left;
+  clear: left;
+  width: 100%;
+  margin: 50px auto;
+  border-top: 1px dotted #ccc;
+  padding-top: 5px;
+  font-size: 13px;
+}
+.blink {
+  -webkit-animation: blink 1s steps(5, start) infinite;
+  -moz-animation: blink 1s steps(5, start) infinite;
+  -o-animation: blink 1s steps(5, start) infinite;
+  -ms-animation: blink 1s steps(5, start) infinite;
+  animation: blink 1s steps(5, start) infinite;
+  -webkit-animation: blink 1s steps(5, start) infinite;
+}
+@-webkit-keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+.btn-upload-file {
+  position: relative;
+  overflow: hidden;
+}
+.btn-upload-file input[type=file] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  filter: alpha;
+  opacity: 0;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+  filter: alpha(opacity=0);
+  outline: none;
+  background: #fff;
+  cursor: inherit;
+  display: block;
+}
+@-moz-keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+@-webkit-keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+@-o-keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
