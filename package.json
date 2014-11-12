@@ -51,11 +51,11 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node agent.js"
+    "start": "node server.js.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jfelten/knowhow-agent"
+    "url": "https://github.com/jfelten/knowhow-server"
   },
   "keywords": [
     "puppet",
