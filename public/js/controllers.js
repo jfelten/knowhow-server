@@ -816,9 +816,9 @@ var myModule = angular.module('myApp.controllers', []).
 		  			alert("unable to load repository: "+err.message);
 		  			
 		  		}
-		  		console.log(data[0].children);
+		  		console.log(data);
 		  		branch.children=data[0].children;
-		  		$scope.repoTree.expand_branch(branch);
+		  		//$scope.repoTree.expand_branch(branch);
 		  		$scope.repo_tabs[1].title = 'Edit Repo '+branch.label;
   		        $scope.repo_tabs[1].active = true
 		  		
@@ -837,8 +837,7 @@ var myModule = angular.module('myApp.controllers', []).
   		      $scope.repo_tabs[0].active = true
   		    
   		      });
-	      		    		
-	      }		    	  
+  		   }    	  
 	    	  
     	};
     	
@@ -866,8 +865,19 @@ var myModule = angular.module('myApp.controllers', []).
     	});
     }
     
+    $scope.addFile = function() {
+		qs_repo.openNewFileModal($scope.currentFile, $scope.selectedRepoName, $scope.repoTree,'addFile');
+		
+	}
+    
     $scope.deleteFile = function() {
     	if ($scope.currentFile) {
+    		if ($scope.currentFile.label == 'jobs' || $scope.currentFile.label == 'environments'
+    			|| $scope.currentFile.label == 'workflows') {
+    			$scope.repo_message="cannot delete environments, jobs, or workflows directories.";
+    			return;
+    			
+    		}
     		var type = $scope.currentFile.type;
     		var repoName = $scope.currentFile.label;
     		var deleted_branch = {
@@ -877,7 +887,7 @@ var myModule = angular.module('myApp.controllers', []).
     			name: $scope.currentFile.label,
     			path: $scope.currentFile.path
     		};
-    		
+    		console.log(deleted_branch);
 	    	qs_repo.deleteFile(deleted_branch, false, function(err,data) {
 	    		var repoTree = $scope.repoTree;
 	    		if (err) {
@@ -890,6 +900,7 @@ var myModule = angular.module('myApp.controllers', []).
 		    		//repoTree.select_branch(addedRepo);
 		    		$scope.repo_message="repo: "+repoName+" deleted.";
 		    		$scope.selectedRepo=undefined;
+		    		 $scope.repo_tabs[2].active = true
 		    			
 		    	} else if (repoTree.get_parent_branch(deleted_branch)) {
 		  			var parent_branch = repoTree.get_parent_branch(deleted_branch);
@@ -987,6 +998,7 @@ var myModule = angular.module('myApp.controllers', []).
     	var data = {
 		    	newRepo: newRepo,
 		    }
+		$scope.repo_message="importing...";
     	$http({
 		      method: 'POST',
 		      url: '/repo/importRepoFromServer',
@@ -994,7 +1006,7 @@ var myModule = angular.module('myApp.controllers', []).
 		    }).success(function (data, status, headers, config) {
 		        loadRepos();
     			//$scope.repoTree.select_branch(data);
-    			$scope.repo_message="repo: "+ data.label+" imported.";
+    			$scope.repo_message="repo: "+ newRepo.name+" imported from: "+newRepo.host+":"+newRepo.port;
 		    }).
 		    error(function (data, status, headers, config) {
 		    	$scope.repo_message="unable to import repo: "+data;
@@ -1009,6 +1021,7 @@ var myModule = angular.module('myApp.controllers', []).
     	var data = {
 		    	newRepo: newRepo,
 		    }
+		$scope.repo_message="importing...";
     	$http({
 		      method: 'POST',
 		      url: '/repo/importRepoFromGIT',
@@ -1016,7 +1029,7 @@ var myModule = angular.module('myApp.controllers', []).
 		    }).success(function (data, status, headers, config) {
 		        loadRepos();
     			//$scope.repoTree.select_branch(data);
-    			$scope.repo_message="repo: "+ data.label+" imported.";
+    			$scope.repo_message="repo: "+ newRepo.name+" imported from: "+newRepo.gitRepo;
 		    }).
 		    error(function (data, status, headers, config) {
 		    	$scope.repo_message="unable to import repo: "+data;

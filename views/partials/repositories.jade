@@ -1,11 +1,10 @@
 p Active Repositories
 p
 .repositories-page
-
 	.repositories-nav
 		repositories-nav-buttons(ng-hide="repoList.length == 0")
 			button.btn.btn-secondary(ng-show="currentFile" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="deleteFile()" )|delete
-			button.btn.btn-secondary(ng-show="selectedFile && selectedFile.type != \"repo\"" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="addFile()" )|add
+			button.btn.btn-secondary(ng-show="currentFile && currentFile.type != \"repo\"" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="addFile()" )|add
 
 		span(ng-if="repoList.length==0") no repositories defined
 		abn-tree(ng-if="repoData.length>0" tree-data="repoData" tree-control="repoTree" on-select="repo_tree_handler(branch)" expand-level="2"  )
@@ -13,7 +12,8 @@ p
 		.row
 			.col-md-12
 				.job-message-block.pull-left(ng-show="repo_message")
-					{{repo_message}}
+					i.glyphicon.glyphicon-refresh.icon-refresh-animate(ng-show="repo_message=='importing...'")
+					&nbsp;{{repo_message}}
 		.row
 			.col-md-12.col-lg-12
 				tabset
@@ -50,7 +50,7 @@ p
 										input(type="text" id="repoName" name="repoName" ng-model='newRepo.name' placeholder="Enter name*" required)
 									form-group
 										label.sr-only(for="repoPath")
-										input(type="text" id="repoPath" name="repoPath" ng-model='newRepo.path' placeholder="Enter file path*" required)
+										input(type="text" id="repoPath" name="repoPath" ng-model='newRepo.path' placeholder="Enter file path*" size="30" required)
 									form-group.pull-right
 										| &nbsp;
 										button.btn.btn-primary(ng-click='addRepo(newRepo)' ) Create empty file repository
@@ -101,7 +101,7 @@ p
 										input(type="text" id="host" name="host" ng-model='newRepo.host' placeholder="Enter repo host*" required)
 									form-group
 										label.sr-only(for="port")
-										input(type="text" id="host" name="port" ng-model='newRepo.port' placeholder="port*" size="5" required)
+										input(type="text" id="port" name="port" ng-model='newRepo.port' placeholder="port*" size="5" required)
 									form-group.pull-right
 										| &nbsp;
 										button.btn.btn-primary(ng-click='importFromHost(newRepo)' ) Import from server

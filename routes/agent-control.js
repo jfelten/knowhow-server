@@ -15,12 +15,15 @@ var http = require('http');
 var io =  require('socket.io-client');
 var fileControl = require('../routes/file-control');
 var ss = require('socket.io-stream');
+var fs = require('fs');
+
 //deliver the agent files
 var pathlib = require('path');
-var agent_dir = __dirname+"/../../knowhow_agent";
 var agent_archive_name = 'knowhow_agent.tar.gz';
+var agent_archive_path = pathlib.join(fs.realpathSync(require('process').cwd()), agent_archive_name);
 var node_archive_name = 'node-v0.10.28-linux-x64.tar.gz';
-var node_archive_path = pathlib.join(__dirname+'../../../../',node_archive_name);
+var node_archive_path = pathlib.join(__dirname+'../../',node_archive_name);
+var knowhowAgent = require('../../knowhow-agent');
 
 
 eventEmitter.on('package-complete',function(agent){
@@ -326,7 +329,7 @@ install = function(main_callback) {
 		logger.info("using sudo to run job as: "+agent.user);
   		sudoCMD = 'echo \"'+decrypt(agent.password,serverInfo.cryptoKey)+'\" | sudo -S -u '+agent.user+' ';
 	}
-	var cleanUpCmd = "rm -rf /tmp/"+agent_archive_name
+	var cleanUpCmd = "rm -rf /tmp/"+agent_archive_name+" /tmp/"+node_archive_name
 	for (index in commands) {
 		logger.info("queueing "+index+":"+commands[index]);
 		var command = commands[index];
@@ -526,30 +529,25 @@ packAgent = function(callback) {
 	
 	var agent = this.agent;
 	//create agent archive
-	logger.info('packaging agent');
-	fstream.Reader({ 'path': agent_dir, 'type': 'Directory' }) /* Read the source directory */
-	.pipe(tar.Pack()) /* Convert the directory to a .tar file */
-	.pipe(zlib.Gzip()) /* Compress the .tar file */
-	.pipe(fstream.Writer({ 'path': agent_archive_name }).on("close", function () {
-		if (this.agent) {
-			agent.message = 'package-complete';
-			agent.progress+=10;
-			eventEmitter.emit('agent-update', agent);
-		}
-		logger.info('agent packaged.');
-	}).on("error",function(){
-		if (this.agent) {
-			eventEmitter.emit('agent-error', agent);
-		}
-		logger.error('error packing agent: ', err);
-		if (callback) {
-			callback(new Error("Unable to pack agent"));
-		}
-	})).on("close", function () {
-		if (callback) {
+	knowhowAgent.packAgent(agent_archive_path, function(err) {
+		if(err) {
+			if (this.agent) {
+				eventEmitter.emit('agent-error', agent);
+			}
+			logger.error('error packing agent: ', err.message);
+			if (callback) {
+				callback(err);
+			}
+		} else {
+			if (this.agent) {
+				this.agent.message = 'package-complete';
+				this.agent.progress+=10;
+				eventEmitter.emit('agent-update', this.agent);
+			}
 			callback();
 		}
 	});
+
 	
 };
 
@@ -596,7 +594,7 @@ deliverAgent = function(callback) {
 	    path: '/tmp/'+agent_archive_name
 	});
 
-	client.upload(__dirname+"/../"+agent_archive_name, '/tmp/'+agent_archive_name, function(err){
+	client.upload(agent_archive_path, '/tmp/'+agent_archive_name, function(err){
 		if (err) {
 			logger.info(err);
 			callback(err);
@@ -667,18 +665,14 @@ exports.addAgent = function(agent,serverInfo) {
 		    logger.debug("added agent: "+newDoc);
 		    agent=newDoc;
 			eventEmitter.emit('agent-add',agent);
-			var agentDirName = 'knowhow_agent';
+			var agentDirName = 'knowhow-agent';
 			var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
-			var agentExtractedDir = agent._id;
-			if (agent.user != agent.login) {
-		  		var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
-		  	}
+			var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
 			install_commands=['rm -rf '+agentExtractedDir,
 							'mkdir -p '+agentExtractedDir,
 			  	          	'tar xzf '+agentArchive+' -C '+agentExtractedDir,
-			  	            'tar xzf '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
-			  	            'rm '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'node*.tar.gz',
-			  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production > /dev/null 2>&1 &'
+			  	            'tar xzf '+os.tmpdir()+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
+			  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production --workingDir='+agentExtractedDir+' > /dev/null 2>&1&'
 			  	];
 
 			function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};

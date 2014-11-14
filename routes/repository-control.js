@@ -14,6 +14,9 @@ var os = require("os");
 var inspect = require('util').inspect;
 var domain = require('domain');
 
+var KnowhowShell = require('knowhow-shell');
+
+
 var baseDirs = ["environments", "jobs", "workflows"];
 
 var loadRepository = function(repoId, callback) {
@@ -322,11 +325,8 @@ var initializeFileRepo = function(repoDir, callback) {
 };
 
 var importFromGIT = function(newRepo, callback) {
-	git  = require('gift');
-	var userpassword = '';
 	if (newRepo.gitUser && newRepo.gitPassword) {
-		//userpassword = encodeURIComponent(newRepo.gitUser+':'+newRepo.gitPassword)+'@';
-		var url = require('url');
+			var url = require('url');
 		gitURL = url.parse(newRepo.gitRepo);
 		if (gitURL.protocol == "ssh:") {
 			gitURL.auth=newRepo.gitUser;
@@ -339,47 +339,35 @@ var importFromGIT = function(newRepo, callback) {
 		logger.debug(newRepo.gitRepo);
 		
 	}
-	var gitError = undefined
-	var suppose = require('suppose');
-	suppose('git', ['clone', newRepo.gitRepo, newRepo.path])
-		.debug(fs.createWriteStream('/tmp/debug.txt')) 
-		//.on(/\w*/).respond(newRepo.gitPassword+"\n")
-	.error(function(err){
-	  logger.error(err.message);
-	  gitError = err;
-	  //callback(err);
-	  //return;
-	})
-	.end(function(code){
-	  if (gitError) {
-	  	logger.error(gitError.message);
-	  	callback(gitError);
-	  	return;
-	  }
-	  addFileRepo(newRepo, true, function(err, createdRepo) {
-	  	if (err) {
-	  		callback(err);
-	  		return;
-	  	}
-	  	callback(undefined, createdRepo);
-	  });
+	cloneJob = {
+		script: {
+			commands: [
+				{
+					command: 'git clone '+newRepo.gitRepo+' '+newRepo.path,
+					responses : {
+						'password': newRepo.gitPassword
+					}
+				}
+			]
+		}
+	};
+	knowhowShell = new KnowhowShell();
+	knowhowShell.executeJob(cloneJob, function(err, completedJobRuntime) {
+		if (err) {
+			logger.error(err.message);
+			callback(err);
+		} else {
+		  	addFileRepo(newRepo, true, function(err, createdRepo) {
+		  	  	if (err) {
+	  				callback(err);
+	  				return;
+	  			}
+	  			else {
+	  				callback();
+				}
+			});
+		}
 	});
-//	git.clone(newRepo.gitRepo, newRepo.path, function(err, _repo) {
-//	  if (err) {
-//	  	console.log(err.message);
-//	  	callback(err);
-//	  	return;
-//	  }
-//	  logger.info(newRepo.gitRepo+" cloned.");
-//	  addFileRepo(newRepo, true, function(err, createdRepo) {
-//	  	if (err) {
-//	  		callback(err);
-//	  		return;
-//	  	}
-//	  	callback(undefined, createdRepo);
-//	  });
-	  
-// });
 }
 
 exports.api = {

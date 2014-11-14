@@ -43,8 +43,8 @@ dirTree = function (filename) {
 	        info.children = [];
 	        fs.readdirSync(filename).map(function(child) {
 	        	if (!isUnixHiddenPath(child)) {
-	        		info.children.push(child);
-	        		return dirTree(filename + '/' + child);
+	        		info.children.push(dirTree(filename + '/' + child));
+	        		//return dirTree(filename + '/' + child);
 	        	}
 	        });
 	        
@@ -54,6 +54,7 @@ dirTree = function (filename) {
 	        info.type = "file";
 	    	//return path.basename(filename);
 	    }
+	    console.log(info);
 	    return info;
 	}    
 
