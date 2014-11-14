@@ -1,20 +1,22 @@
 knowhow-server
 ==============
 
-The control application for the knowhow framework
+The control application for the knowhow framework.  This package is the server only.  For the complete package please use the knowhow project.
 
 # Installation
 
 
-    npm install -g knowhow-server
+    npm install knowhow-server
 
-To start the agent simply run the script 
+run directly from node:
+
+    node server.js
+
+
 
     startKHServer
     
-or run directly from node:
 
-    node server.js
     
 After starting access the agent through a web browser  [http://localhost:3001](http://localhost:3001).
 
