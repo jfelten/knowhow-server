@@ -50,6 +50,7 @@ addDefaultAgent = function(callback) {
 				
 			});
 		}
+		
 		getStatus.bind({agent: defaultAgent})(function() {
 			logger.info("default agent added");
 		});

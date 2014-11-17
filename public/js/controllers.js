@@ -130,6 +130,7 @@ var myModule = angular.module('myApp.controllers', []).
     });
     socket.on('job-complete', function(agent,job){
       console.log('job complete message received');
+      job.progress=0;
       updateRunningJobs(agent,job);
       $scope.message=job.id+" completed";
 	  $scope.$apply();
@@ -159,9 +160,9 @@ var myModule = angular.module('myApp.controllers', []).
 	        } else if (!$scope.runningJobs[agent._id][job.id]) {
 	        	$scope.runningJobs[agent._id][job.id] = {}
 	        }
-	        if (job.progress){
-	      		$scope.runningJobs[agent._id][job.id].progress=job.progress;
-	      	}
+
+	      	$scope.runningJobs[agent._id][job.id].progress=job.progress;
+
 	      	$scope.runningJobs[agent._id][job.id].status=job.status;
 	      	$scope.runningJobs[agent._id][job.id].id=job.id;
 	      	$scope.runningJobs[agent._id].agent={_id: agent._id, user: agent.user, host: agent.host, port: agent.port};

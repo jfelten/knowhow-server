@@ -160,6 +160,7 @@ agentControl.packAgent( function (err) {
 });
 
 agentControl.addDefaultAgent();
+
 //do a heartbeat check each minute and make sure socket connections are made
 var agentCheck = function() {
 	agentControl.listAgents(function (err, agents) {
