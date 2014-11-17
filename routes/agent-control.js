@@ -23,7 +23,7 @@ var agent_archive_name = 'knowhow_agent.tar.gz';
 var agent_archive_path = pathlib.join(fs.realpathSync(require('process').cwd()), agent_archive_name);
 var node_archive_name = 'node-v0.10.28-linux-x64.tar.gz';
 var node_archive_path = pathlib.join(__dirname+'../../',node_archive_name);
-var knowhowAgent = require('knowhow-agent');
+var knowhowAgent = require('../../knowhow-agent');
 
 
 eventEmitter.on('package-complete',function(agent){
