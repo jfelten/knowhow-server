@@ -202,10 +202,17 @@ function AgentEventHandler(io) {
 		
 		try {
 			logger.info(job.id+' cancelled.');
-			io.emit('job-cancel', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
-								, {id: job.id, status: job.status, progress: job.progress});
+			eventAgent = {};
+			if (agent) {
+				eventAgent = {_id: agent._id, host: agent.host, port: agent.port, user: agent.user};
+			}
+			evenntJob = {};
+			if (job) {
+				eventJob = {id: job.id, status: job.status, progress: job.progress};
+			}
+			io.emit('job-cancel',eventAgent,eventJob);
 		} catch(err) {
-			logger.error("unable to broadcast cancel event");
+			logger.error("unable to broadcast cancel event: "+err.message);
 		}
 	});
 	executionControl.eventEmitter.on('job-complete', function(agent, job) {
