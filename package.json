@@ -47,8 +47,8 @@
     "ssh2-exec": "^0.2.7",
     "process": "^0.9.0",
     "qs": "^2.3.3",
-    "knowhow-shell": "^0.1.0",
-    "knowhow-agent": "0.0.x"
+    "knowhow-shell": "^0.1.*",
+    "knowhow-agent": "0.0.*"
   },
   "devDependencies": {},
   "scripts": {
