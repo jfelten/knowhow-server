@@ -23,7 +23,6 @@ var agent_archive_name = 'knowhow_agent.tar.gz';
 var agent_archive_path = pathlib.join(fs.realpathSync(require('process').cwd()), agent_archive_name);
 var node_archive_name = 'node-v0.10.28-linux-x64.tar.gz';
 var node_archive_path = pathlib.join(__dirname+'../../',node_archive_name);
-var knowhowAgent = require('../../knowhow-agent');
 
 
 eventEmitter.on('package-complete',function(agent){
@@ -178,7 +177,7 @@ exports.doesAgentIdExist = function(agentId, callback) {
 	var queryParams = {}
 	queryParams._id = agentId;
 	db.findOne(queryParams, function(err, doc) {
-		if (err) {
+		if (err || !doc) {
 			if (callback) {
 				callback(err);
 			}
@@ -514,45 +513,48 @@ checkAgent = function(callback) {
 			logger.error('agent: '+agent.user+'@'+agent.host+':'+agent.port+' already exists.');
 			callback(new Error("Agent already exists"));
 		} else {
-			heartbeat(agent, function(err) {
-				if (!err) {
-					callback(new Error("Agent already exists"));
-				}
+			//heartbeat(agent, function(err) {
+			//	if (!err) {
+			//		callback(new Error("Agent already exists"));
+			//	}
 				callback();
-			});
+			//});
 			
 		}
 		
 	  });
 
 };
-packAgent = function(callback) {
-	
+
+exports.packAgent = function(callback) {
+
 	var agent = this.agent;
 	//create agent archive
-	knowhowAgent.packAgent(agent_archive_path, function(err) {
-		if(err) {
-			if (this.agent) {
-				eventEmitter.emit('agent-error', agent);
-			}
-			logger.error('error packing agent: ', err.message);
-			if (callback) {
-				callback(err);
-			}
-		} else {
-			if (this.agent) {
-				this.agent.message = 'package-complete';
-				this.agent.progress+=10;
-				eventEmitter.emit('agent-update', this.agent);
-			}
+	logger.info('packaging agent');
+	fstream.Reader({ 'path': __dirname+'../../../knowhow-agent' , 'type': 'Directory' }) /* Read the source directory */
+	.pipe(tar.Pack()) /* Convert the directory to a .tar file */
+	.pipe(zlib.Gzip()) /* Compress the .tar file */
+	.pipe(fstream.Writer({ 'path': agent_archive_path }).on("close", function () {
+		logger.info('agent packaged.');
+		if (this.agent) {
+			this.agent.message = 'package-complete';
+			this.agent.progress+=10;
+			eventEmitter.emit('agent-update', this.agent);
+		}
+		if (callback) {
 			callback();
 		}
-	});
-
+	}).on("error",function(){
+		if (this.agent) {
+			eventEmitter.emit('agent-error', agent);
+		}
+		logger.error('error packing agent: ', err);
+		if (callback) {
+			callback(new Error("Unable to pack agent"));
+		}
+	}));
 	
 };
-
-exports.packAgent = packAgent;
 
 
 
@@ -641,7 +643,7 @@ deliverAgent = function(callback) {
 	});
 
 };
-exports.addAgent = function(agent,serverInfo) {
+exports.addAgent = function(agent,serverInfo,callback) {
 	
 
 	logger.info("adding agent: "+agent);
@@ -658,14 +660,22 @@ exports.addAgent = function(agent,serverInfo) {
 			logger.error('agent error' + err);
 			agent.message = ""+err;
 			eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
+			if (callback) {
+				callback(err);
+			}
 			return;
 		}
 		
         agent=initAgent(agent,serverInfo);
-    	db.insert(agent, function (err, newDoc) {   
+    	db.insert(agent, function (err, newDoc) {
+    		if (callback) {
+				callback(err);
+			}
+			return;
 		    logger.debug("added agent: "+newDoc);
 		    agent=newDoc;
 			eventEmitter.emit('agent-add',agent);
+
 			var agentDirName = 'knowhow-agent';
 			var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
 			var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
@@ -685,29 +695,51 @@ exports.addAgent = function(agent,serverInfo) {
 			            registerServer.bind(function_vars),
 			            updateAgentInfoOnAgent.bind(function_vars),
 			            getStatus.bind(function_vars)];
-			try {
-				async.series(exec,function(err) {
-					if (err) {
-						logger.error('agent error' + err);
-						eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
-						return;
-					}
-					//set the progress back to 0
-					db.find({_id: agent._id}, function(err, docs) {
-						if (docs.length > 0) {
-							agent = docs[0];
-							agent.status='READY';
-							agent.message=undefined
-							agent.progress =0;
-							eventEmitter.emit('agent-update',agent);
+			            
+			heartbeat(agent, function(err) {
+				if (!err) {
+					logger.info("Agent already exists");
+					exec = [
+			            waitForAgentStartUp.bind(function_vars),
+			            registerServer.bind(function_vars),
+			            updateAgentInfoOnAgent.bind(function_vars),
+			            getStatus.bind(function_vars)];
+				}
+				try {
+					async.series(exec,function(err) {
+						if (err) {
+							logger.error('agent error' + err);
+							eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
+							if (callback) {
+								callback(err);
+							}
+							return;
 						}
-						
-					  });
+						//set the progress back to 0
+						db.find({_id: agent._id}, function(err, docs) {
+							if (docs.length > 0) {
+								agent = docs[0];
+								agent.status='READY';
+								agent.message=undefined
+								agent.progress =0;
+								eventEmitter.emit('agent-update',agent);
+							}
+							
+						  });
+						if (callback) {
+							callback();
+						}
+					
+					});
+				} catch(err) {
+					if (callback) {
+						callback(err);
+					}
+					logger.error("agent install failed for: "+agent.host+":"+agent.port);
+				}
 				
-				});
-			} catch(err) {
-				logger.error("agent install failed for: "+agent.host+":"+agent.port);
-			}
+			});	
+				
 		});
 		
 	});

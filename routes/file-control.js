@@ -9,15 +9,6 @@ var repoControl = require('./repository-control');
 
 
 
-
-exports.getFilePath = function(repofilename) {
-	fileURL =url.parse(repofilename);
-	logger.debug("repo="+fileURL.protocol);
-	logger.debug("file="+fileURL.pathname);
-	repoDir = repos[fileURL.protocol];
-	return repoDir+fileURL.path;
-};
-
 getDirTree= function(dir, callback) {
 	logger.info("loading dir: "+dir);
 	var tree=  dirTree(dir);

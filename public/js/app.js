@@ -13,6 +13,7 @@ angular.module('myApp', [
   'angularBootstrapNavTree',
   'qs_repository',
   'qs_workflow',
+  'qs_agent',
   'angularFileUpload'
 ]).
 config(function ($routeProvider, $locationProvider) {

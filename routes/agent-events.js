@@ -52,13 +52,53 @@ function listenForAgentEvents(agent, callback) {
 	agentSockets[agent._id].eventSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/agent-events');
 	logger.info("connecting to: "+agent.host+":"+agent.port+'/agent-events' ); 
     agentSockets[agent._id].eventSocket.on('connect', function() { 
-    	 listenForEvents(agent, agentSockets[agent._id].eventSocket);
+    	 agentControl.heartbeat(agent, function (err, connectedAgent) {
+			if (err) {
+				connectedAgent.status='ERROR'
+				connectedAgent.message='no heartbeat';
+				agentControl.updateAgent(connectedAgent, function() {
+					agentControl.eventEmitter.emit('agent-update',connectedAgent);
+				});
+				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
+			};
+	    	agentControl.updateAgent(connectedAgent, function() {
+				agentControl.eventEmitter.emit('agent-update',connectedAgent);
+			});
+    		listenForEvents(agent, agentSockets[agent._id].eventSocket);
+    	});
     	 
     }).on('error', function(err) {
     	//callback(err, agent);
     }).on('reconnect', function() {
     	logger.info("reconnected to : "+agent.host+":"+agent.port);
-    	listenForEvents(agent, agentSockets[agent._id].eventSocket);
+    	agentControl.heartbeat(agent, function (err, connectedAgent) {
+			if (err) {
+				connectedAgent.status='ERROR'
+				connectedAgent.message='no heartbeat';
+				agentControl.updateAgent(connectedAgent, function() {
+					agentControl.eventEmitter.emit('agent-update',connectedAgent);
+				});
+				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
+			};
+	    	agentControl.updateAgent(connectedAgent, function() {
+				agentControl.eventEmitter.emit('agent-update',connectedAgent);
+			});
+    		listenForEvents(agent, agentSockets[agent._id].eventSocket);
+    	});
+    }).on('disconnect', function() {
+    	agentControl.heartbeat(agent, function (err, connectedAgent) {
+			if (err) {
+				connectedAgent.status='ERROR'
+				connectedAgent.message='no heartbeat';
+				agentControl.updateAgent(connectedAgent, function() {
+					agentControl.eventEmitter.emit('agent-update',connectedAgent);
+				});
+				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
+			};
+	    	agentControl.updateAgent(connectedAgent, function() {
+				agentControl.eventEmitter.emit('agent-update',connectedAgent);
+			});
+		});
     });
     callback(undefined, agent);
 	

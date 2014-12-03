@@ -6,6 +6,7 @@ var agentEvents = require('./agent-events');
 var http = require('http');
 var io =  require('socket.io-client');
 var fileControl = require('../routes/file-control');
+var repoControl = require('./repository-control');
 var ss = require('socket.io-stream');
 var zlib = require('zlib');
 var fstream = require('fstream');
@@ -67,15 +68,17 @@ checkFiles = function(job, callback) {
 		var file = files[uploadFile];
 		file.source = replaceVars(file.source, job.script.env) 
 		job.files[uploadFile] = file;
-		
-		var filepath= fileControl.getFilePath(file.source);
-			
-		if (!fs.existsSync(filepath))  {
-			if (callback) {
-				callback(new Error(file.source+" does not exist."));
+				
+		var filepath= repoControl.getFilePath(file.source, function(err, filepath) {
+			if (!filepath || !fs.existsSync(filepath))  {
+				if (callback) {
+					callback(new Error(file.source+" does not exist."));
+				}
+			return false;
 			}
-			return false;;
-		}
+		});
+			
+		
 
 	}
 	if (callback) {
@@ -224,7 +227,9 @@ var cancelJobOnAgent = function(agent,job,callback) {
 
 	var jobId = job.id;
 	var agentId = agent._id;
-	
+	if (currentJobs[agentId].eventSocket) {
+		currentJobs[agentId].eventSocket.emit('job-cancel',job);
+	}
 	eventEmitter.emit('cancel-job-on-agent',agent,job);
 	cancelJob(agentId,jobId, function() {
 		if (callback) {
@@ -239,6 +244,10 @@ exports.cancelJobOnAgent = cancelJobOnAgent;
 
 exports.executeJob = function(agent,job,callback) {
 	
+	if (agent.status != 'READY') {
+		callback(new Error('agent state is not \'READY\''));
+		return;
+	}
 	var d = domain.create();
 	
 	d.on('error', function(er) {
@@ -377,76 +386,88 @@ function uploadFiles(agent,job, callback) {
 	files=job.files;
 	
 	currentJobs[agentId][jobId].fileProgress = {};
-	for (uploadFile in files) {
-	    
+	async.eachSeries(files, function(file,fcallback) {
 	    
 		var file = files[uploadFile];
-		var filepath= fileControl.getFilePath(file.source);
-		var fileName = pathlib.basename(filepath);
-		currentJobs[agentId][jobId].fileProgress[fileName] = {}
-	    currentJobs[agentId][jobId].fileProgress[fileName].fileName=fileName;
-		
-		var name = filepath.split(pathlib.sep).pop();
-		
-		
-		
-		var total = 0;
-		try {
-			if (fs.existsSync(filepath))  {
+		var filepath= repoControl.getFilePath(file.source, function(err, filepath) {
+			if (err) {
+				logger.error(err.message);
+				fcallback(err);
+				return;
+			}
+			var fileName = pathlib.basename(filepath);
+			currentJobs[agentId][jobId].fileProgress[fileName] = {}
+		    currentJobs[agentId][jobId].fileProgress[fileName].fileName=fileName;
 			
-				var stats = fs.statSync(filepath);
-				var fileSizeInBytes = stats["size"];
-				var isDirectory = stats.isDirectory();	
-			    logger.info("uploading "+filepath);
-				var stream = ss.createStream();
+			var name = filepath.split(pathlib.sep).pop();
+			
+			
+			
+			var total = 0;
+			try {
+				if (fs.existsSync(filepath))  {
 				
-				if(isDirectory) {
-					currentJobs[agentId][jobId].gzip = zlib.Gzip();
-					currentJobs[agentId][jobId].tar = tar.Pack();
-					currentJobs[agentId][jobId].fileProgress[fileName].readStream = fstream.Reader({ 'path': filepath, 'type': 'Directory' })
-					.pipe(currentJobs[agentId][jobId].tar).on('error', function(err) {/* Convert the directory to a .tar file */
-						logger.error("tar pack interrupted: "+err.message);
-					}) 
-					.pipe(currentJobs[agentId][jobId].gzip).on('error', function(err) {
-						logger.error("gzip compression interrupted: "+err.message);
-					});
+					var stats = fs.statSync(filepath);
+					var fileSizeInBytes = stats["size"];
+					var isDirectory = stats.isDirectory();	
+				    logger.info("uploading "+filepath);
+					var stream = ss.createStream();
+					
+					if(isDirectory) {
+						currentJobs[agentId][jobId].gzip = zlib.Gzip();
+						currentJobs[agentId][jobId].tar = tar.Pack();
+						currentJobs[agentId][jobId].fileProgress[fileName].readStream = fstream.Reader({ 'path': filepath, 'type': 'Directory' })
+						.pipe(currentJobs[agentId][jobId].tar).on('error', function(err) {/* Convert the directory to a .tar file */
+							logger.error("tar pack interrupted: "+err.message);
+						}) 
+						.pipe(currentJobs[agentId][jobId].gzip).on('error', function(err) {
+							logger.error("gzip compression interrupted: "+err.message);
+						});
+					} else {
+						//currentJobs[agentId][jobId].fileProgress[fileName].readStream = fs.createReadStream(filepath,{autoClose: true, highWaterMark: 32 * 1024});
+						currentJobs[agentId][jobId].gzip = zlib.Gzip();
+						currentJobs[agentId][jobId].fileProgress[fileName].readStream = fstream.Reader(filepath)
+						.pipe(currentJobs[agentId][jobId].gzip).on('error', function(err) {
+							logger.error("gzip compression interrupted: "+err.message);
+						});
+					}
+					ss(currentJobs[agentId].fileSocket).emit('agent-upload', stream, {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination, isDirectory: isDirectory });
+					currentJobs[agentId][jobId].fileProgress[fileName].readStream.pipe(stream );
+					fcallback();
 				} else {
-					//currentJobs[agentId][jobId].fileProgress[fileName].readStream = fs.createReadStream(filepath,{autoClose: true, highWaterMark: 32 * 1024});
-					currentJobs[agentId][jobId].gzip = zlib.Gzip();
-					currentJobs[agentId][jobId].fileProgress[fileName].readStream = fstream.Reader(filepath)
-					.pipe(currentJobs[agentId][jobId].gzip).on('error', function(err) {
-						logger.error("gzip compression interrupted: "+err.message);
-					});
+					throw new Error(filepath+" does not exist");
 				}
-				ss(currentJobs[agentId].fileSocket).emit('agent-upload', stream, {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination, isDirectory: isDirectory });
-				currentJobs[agentId][jobId].fileProgress[fileName].readStream.pipe(stream );
-			} else {
-				throw new Error(filepath+" does not exist");
+			    
+			} catch(err) {
+			    var badFile = fileControl.getFilePath(files[uploadFile].source);
+				logger.error("unable to start upload for: "+ badFile)
+				logger.error(err.message+" "+err.call+" "+err.sys);
+				if (currentJobs[agentId].fileSocket) {
+					currentJobs[agentId].fileSocket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );
+				} else {
+					logger.error("unable to notify server of upload failure");
+				}
+				
+	        //    currentJobs[agentId][jobId].fileProgress.error=true;
+	        //    logger.error('requesting cancel of: '+jobId);
+			//	currentJobs[agentId].eventSocket.emit('job-cancel',jobId);
+			//	cancelJob(agent, job);
+			//	callback(new Error("Problem starting file upload"));
+			    
+				fcallback(new Error("unable to start upload for: "+badFile));
+				error=true;
+				return;
 			}
-		    
-		} catch(err) {
-		    var badFile = fileControl.getFilePath(files[uploadFile].source);
-			logger.error("unable to start upload for: "+ badFile)
-			logger.error(err.message+" "+err.call+" "+err.sys);
-			if (currentJobs[agentId].fileSocket) {
-				currentJobs[agentId].fileSocket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );
-			} else {
-				logger.error("unable to notify server of upload failure");
-			}
-			
-        //    currentJobs[agentId][jobId].fileProgress.error=true;
-        //    logger.error('requesting cancel of: '+jobId);
-		//	currentJobs[agentId].eventSocket.emit('job-cancel',jobId);
-		//	cancelJob(agent, job);
-		//	callback(new Error("Problem starting file upload"));
-		    
-			callback(new Error("unable to start upload for: "+badFile));
-			return;
-			break;
-		}
+		});
 		
-	}
-	callback();
+		
+	}, function(err) {
+		if(err) {
+			callback(err);
+		} else {
+			callback();
+		}
+	});
 	   
 	
 }

@@ -105,7 +105,7 @@ var myModule = angular.module('myApp.controllers', []).
        });
      };
   }).
-  controller('JobsController', function ($scope, $modal, $http, $log, qs_repo) {
+  controller('JobsController', function ($scope, $modal, $http, $log, qs_repo, qs_agent) {
   
     
     $scope.runningJobs = {};
@@ -119,7 +119,12 @@ var myModule = angular.module('myApp.controllers', []).
     
 	    
   	var socket = io();
-
+  	qs_agent.loadAgentList(function(agentList) {
+		$scope.connectedAgents = agentList;
+		console.log($scope.connectedAgents);
+		qs_agent.listenForAgentEvents($scope, $scope.connectedAgents, socket);
+	});
+	
     socket.on('job-update', function(agent,job){
       
       //loadJobs();
@@ -266,19 +271,16 @@ var myModule = angular.module('myApp.controllers', []).
 	$scope.addFile = function() {
 		qs_repo.openNewFileModal($scope.selectedFile, $scope.selectedRepoName, tree,'addFile');
 		
-	}
-	  $http.get('/api/connectedAgents').
-	    success(function(data) {
-	    	$scope.connectedAgents = data;
-	    });
+	}	
+
 	  
-	  $scope.selectAgent = function(agent) {
-		  $scope.selectedAgent = agent;
-		  console.log('selected agent: '+agent);
-		  $scope.status.isopen = !$scope.status.isopen;
-		  var selectAgent = document.getElementById('selectAgent');
-		  selectAgent.textContent=agent.user+'@'+agent.host+':'+agent.port;
-	  };
+  $scope.selectAgent = function(agent) {
+	  $scope.selectedAgent = agent;
+	  console.log('selected agent: '+agent);
+	  $scope.status.isopen = !$scope.status.isopen;
+	  var selectAgent = document.getElementById('selectAgent');
+	  selectAgent.textContent=agent.user+'@'+agent.host+':'+agent.port;
+  };
 	  
 	  $scope.selectRepo = function(selectedRepo) {
 		  console.log('selected repo: '+selectedRepo.label);
@@ -331,8 +333,8 @@ var myModule = angular.module('myApp.controllers', []).
 			  job = editor.get();
 		      //JSON.parse(jjob);
 		    } catch (e) {
-		    	console.log('error getting job data.')
-		    	$scope.message='Invalid JSON - please fix.';
+		    	console.log('error getting job data: '+e.message);
+		    	$scope.message=e.message;
 		        return;
 		    }
 		    var data = {
@@ -489,9 +491,11 @@ var myModule = angular.module('myApp.controllers', []).
 	  			alert("unable to load repository");
 	  			
 	  		}
-	  		env_container = document.getElementById('env_editor');
-	  		console.log('env_container='+env_container);
-	  		env_editor = new JSONEditor(env_container,options);
+	  		if (!env_container) {
+	  			env_container = document.getElementById('env_editor');
+	  			console.log('env_container='+env_container);
+	  			env_editor = new JSONEditor(env_container,options);
+	  		}
 	  		$scope.environments=data;
 			  qs_repo.loadRepo(selectedRepo,'workflows',function(err, data) {
 		  		if(err) {
@@ -1036,6 +1040,14 @@ var myModule = angular.module('myApp.controllers', []).
 		    	$scope.repo_message="unable to import repo: "+data;
 		    });
     }
+    
+    $scope.saveFile = function() {
+	  	if($scope.selectedFile) {
+			  qs_repo.saveFile($scope.currentFile.path, editor.get(), function(err, message) {
+			  	$scope.message = message;
+			  });
+		}
+	  };
     
     
  });

@@ -13,11 +13,32 @@ var pathlib=require("path");
 var os = require("os");
 var inspect = require('util').inspect;
 var domain = require('domain');
+var url = require('url') ;
 
 var KnowhowShell = require('knowhow-shell');
 
 
 var baseDirs = ["environments", "jobs", "workflows"];
+
+exports.getFilePath = function(repofilename, callback) {
+	fileURL =url.parse(repofilename);
+	repoName = fileURL.protocol.replace(':','');
+	logger.debug("repo="+repoName);
+	logger.debug("file="+fileURL.pathname);
+	db.findOne({name: repoName}, function(err, doc) {
+		if (err) {
+			callback(err);
+			return;
+		} else {
+			if (!doc) {
+				callback(new Error("invalid repo: "+repoName));
+				return;
+			}
+			var filePath = doc.path+fileURL.path;
+			callback(undefined, filePath);
+		}
+	});
+};
 
 var loadRepository = function(repoId, callback) {
 	db.findOne({_id: repoId}, function(err, doc) {
@@ -135,47 +156,53 @@ var addFileRepo = function(fileRepo, useExistingDir, callback) {
 			callback(new Error("A repository with name: "+fileRepo.name+" already exists.  Please choose another name."));
 			return;
 		}
-	
-		var repoDir = pathlib.resolve(fileRepo.path);
-		//create if it doesn't exist
-		if (!fs.existsSync(repoDir)) {
-			logger.info("repo dir does not exist - creating dir: "+repoDir);
-	    	try {
-	    		mkdirp.sync(repoDir, {});
-	    	} catch(err) {
-	    		logger.error("cannot create: "+repoDir+" "+err.message);
-			    callback(err);
+		db.findOne({path: fileRepo.path}, function(err, doc) {
+			if (doc && doc.path == fileRepo.path) {
+				callback(new Error("A repository with path: "+fileRepo.path+" already exists.  Please choose another path."));
 				return;
-	    	}
-	    	logger.info('Directory ' + repoDir + ' created.');
-		}
-			    
-	    //add an entry to the database
-		db.insert(fileRepo, function (err, newDoc) {
-			if (err) {
-				if (callback) {
-					callback(err);
-				}
-				return;
-			} else {  
-				logger.debug("inserted repo: "+fileRepo.name);
-				//initialize the directory structure
-				initializeFileRepo(repoDir, function(err) {
-					if (err) {
-						logger.error("unable to initialize filerepo: "+fileRepo.name);
-						if (callback) {
-							callback(err);
-						}
-						return;
-					} else {
-						logger.info("done creating filerepo: "+fileRepo.name);
-						if (callback) {
-							callback(undefined, newDoc);
-						}
-					}
-				});
 			}
-		});	
+	
+			var repoDir = pathlib.resolve(fileRepo.path);
+			//create if it doesn't exist
+			if (!fs.existsSync(repoDir)) {
+				logger.info("repo dir does not exist - creating dir: "+repoDir);
+		    	try {
+		    		mkdirp.sync(repoDir, {});
+		    	} catch(err) {
+		    		logger.error("cannot create: "+repoDir+" "+err.message);
+				    callback(err);
+					return;
+		    	}
+		    	logger.info('Directory ' + repoDir + ' created.');
+			}
+				    
+		    //add an entry to the database
+			db.insert(fileRepo, function (err, newDoc) {
+				if (err) {
+					if (callback) {
+						callback(err);
+					}
+					return;
+				} else {  
+					logger.debug("inserted repo: "+fileRepo.name);
+					//initialize the directory structure
+					initializeFileRepo(repoDir, function(err) {
+						if (err) {
+							logger.error("unable to initialize filerepo: "+fileRepo.name);
+							if (callback) {
+								callback(err);
+							}
+							return;
+						} else {
+							logger.info("done creating filerepo: "+fileRepo.name);
+							if (callback) {
+								callback(undefined, newDoc);
+							}
+						}
+					});
+				}
+			});
+		});
 	});
 };
 
@@ -400,7 +427,7 @@ exports.api = {
 			APICall: "/repo/newFileRepo",
 			callback: function(req,res) {
 						var newRepo = req.body.newRepo;
-						addFileRepo(newRepo, false, function(err, createdRepo) {
+						addFileRepo(newRepo, true, function(err, createdRepo) {
 							if (err) {
 								logger.error(err.message);
 								res.send(500, err.message);

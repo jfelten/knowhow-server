@@ -5,6 +5,8 @@ p
 		repositories-nav-buttons(ng-hide="repoList.length == 0")
 			button.btn.btn-secondary(ng-show="currentFile" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="deleteFile()" )|delete
 			button.btn.btn-secondary(ng-show="currentFile && currentFile.type != \"repo\"" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="addFile()" )|add
+			button.btn.btn-secondary(ng-show="currentFile && currentFile.type != \"repo\" && currentFile.type != \"folder\"" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="saveFile()" )|save
+			
 
 		span(ng-if="repoList.length==0") no repositories defined
 		abn-tree(ng-if="repoData.length>0" tree-data="repoData" tree-control="repoTree" on-select="repo_tree_handler(branch)" expand-level="2"  )

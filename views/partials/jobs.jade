@@ -44,6 +44,10 @@ p
 							ul.dropdown-menu(role="menu")
 								li(ng-repeat="agent in connectedAgents")
 									a(ng-click="selectAgent(agent)") 
+										i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
+										i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status=='ERROR'")
+										i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")  
+										&nbsp;
 										{{agent.user}}@{{agent.host}}:{{agent.port}}
 								li.divider
 								li

@@ -119,14 +119,20 @@ exports.addAgent = function (req, res) {
 	  logger.debug(params[i]);
   }
   var agent = req.body;
-  agentControl.addAgent(agent, getServerInfo());
-  agentControl.listAgents(function (err, agents) {
-		if (err) {
-			res.send(500, err);
-		} else {
-			res.json(agents);
-		}
-	});
+  agentControl.addAgent(agent, getServerInfo(), function(err) {
+  	if (err) {
+  		res.send(500, err);
+  	} else {
+	  	agentControl.listAgents(function (err, agents) {
+			if (err) {
+				res.send(500, err);
+			} else {
+				res.json(agents);
+			}
+		});
+	}
+  });
+  
 
 };
 
