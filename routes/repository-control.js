@@ -26,19 +26,26 @@ exports.getFilePath = function(repofilename, callback) {
 		repoName = repofilename.split(':')[0];
 		logger.debug("repo="+repoName);
 		logger.debug("file="+fileURL.pathname);
-		db.findOne({name: repoName}, function(err, doc) {
-			if (err) {
-				callback(err);
-				return;
-			} else {
-				if (!doc) {
-					callback(new Error("invalid repo: "+repoName));
+		if (repoName == "InternalRepo") {
+			var filePath = pathlib.resolve(__dirname+pathlib.sep+".."+pathlib.sep+repoName+fileURL.pathname);
+			logger.debug("internal job="+filePath );
+			callback(undefined, filePath);
+		
+		} else {
+			db.findOne({name: repoName}, function(err, doc) {
+				if (err) {
+					callback(err);
 					return;
+				} else {
+					if (!doc) {
+						callback(new Error("invalid repo: "+repoName));
+						return;
+					}
+					var filePath = doc.path+fileURL.path;
+					callback(undefined, filePath);
 				}
-				var filePath = doc.path+fileURL.path;
-				callback(undefined, filePath);
-			}
-		});
+			});
+		}
 	} catch (err) {
 		callback(err);
 	}

@@ -121,7 +121,7 @@ exports.addAgent = function (req, res) {
   var agent = req.body;
   agentControl.addAgent(agent, getServerInfo(), function(err) {
   	if (err) {
-  		res.send(500, err);
+  		res.send(500, {"message": err.message});
   	} else {
 	  	agentControl.listAgents(function (err, agents) {
 			if (err) {

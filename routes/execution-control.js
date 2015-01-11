@@ -217,6 +217,7 @@ completeJob = function(agent,job) {
 		   
 		   
 		 }
+		 job.complete = true;
 		 logger.info("completed.");
 		 eventEmitter.emit('job-complete',agent, job);
 	 }
@@ -321,7 +322,7 @@ exports.executeJob = function(agent,job,callback) {
 			        logger.debug('\n\nJob request sent. Listening for events and uploading files');
 			        job.status="initializing job"
 			        job.progress=1;
-			        eventEmitter.emit('job-update',agent,job);
+			        eventEmitter.emit('job-start',agent,job);
 			        
 					
 				    //do the work
@@ -383,10 +384,12 @@ function uploadFiles(agent,job, callback) {
 	logger.info("uploading files for: "+job.id+" to "+agent.host+":"+agent.port);
  	var agentId = agent._id;
 	var jobId=job.id;
-	files=job.files;
-	
+	if (!job || !job.files || job.files == null) {
+		callback();
+		return;
+	}
 	currentJobs[agentId][jobId].fileProgress = {};
-	async.eachSeries(files, function(file,fcallback) {
+	async.eachSeries(job.files, function(file,fcallback) {
 	    
 		var file = files[uploadFile];
 		var filepath= repoControl.getFilePath(file.source, function(err, filepath) {
@@ -514,6 +517,7 @@ function setJobTimer(agent, job) {
 	    	
 	    	if (!currentJobs[agentId][jobId]) {
 	    		logger.info(jobId+ " not found.");
+	    		clearInterval(this);
 	    		return;
 	    	}
 	    	
@@ -587,7 +591,9 @@ exports.getRunningJobsList = function(callback) {
 		logger.info("getting jobs for: "+agentId);
 		agentControl.doesAgentIdExist(agentId, function(err, existingAgent) {
 			if (err) {
-				delete currentJobs[existingAgent._id];
+				if (existingAgent) {
+					delete currentJobs[existingAgent._id];
+				}
 			} else {
 				//logger.debug(currentJobs[agentId]);
 				for (key in currentJobs[existingAgent._id]) {

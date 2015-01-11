@@ -1,9 +1,12 @@
 
 .container.agent-table
 	.row.agent-table-header
-		.col-md-12.col-lg-12
+		.col-md-6.col-lg-6
 			h4
 				| All Agents &#42; = required
+		.col-md-6.col-lg-6		
+			.job-message-block(ng-show="message")
+						{{message}}
 	.row
 		.col-md-12.col-lg-12			
 			form.form-inline(role="form")

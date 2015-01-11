@@ -82,6 +82,8 @@ var myModule = angular.module('myApp.controllers', []).
         success(function(data) {
         	$scope.connectedAgents = data;
         	//location.reload(); 
+        }).error(function(data, status, headers, config) {
+        	$scope.message="Unable to start agent: "+data.message;
         });
     };
     
