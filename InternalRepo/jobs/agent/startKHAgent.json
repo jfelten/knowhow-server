@@ -32,11 +32,23 @@
     "env": {
       "USER": "root",
       "PASSWORD": "z3nz1c.c0m",
-      "HOST": "10.10.1.3"
+      "HOST": "master101.zenzic.com"
     },
     "commands": [
       {
-        "command": "nohup startKHAgent > /dev/null 2>&1&"
+        "command": "mkdir -p ${working_dir}"
+      },
+      {
+        "command": "cd ${working_dir}"
+      },
+      {
+        "command": "type startKHAgent >/dev/null 2>&1 || echo \"KHAgent is not installed\"; GLOBAL_INSTALL=\"false\""
+      },
+      {
+        "command": "if [ -d \"knowhow-agent\" ]; then LOCAL_INSTALL=\"true\"; fi"
+      },
+      {
+        "command": "if [ -n \"${GLOBAL_INSTALL}\" ]; then nohup startKHAgent  > /dev/null 2>&1& elif [ -n \"${LOCAL_INSTALL}\" ]; then node knowhow-agent/agent.js > /dev/null 2 >&1& fi"
       }
     ]
   }
