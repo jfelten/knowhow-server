@@ -61,6 +61,7 @@ function listenForAgentEvents(agent, callback) {
 				});
 				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
 			};
+			connectedAgent.status='READY';
 	    	agentControl.updateAgent(connectedAgent, function() {
 				agentControl.eventEmitter.emit('agent-update',connectedAgent);
 			});
@@ -80,6 +81,7 @@ function listenForAgentEvents(agent, callback) {
 				});
 				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
 			};
+			connectedAgent.status='READY';
 	    	agentControl.updateAgent(connectedAgent, function() {
 				agentControl.eventEmitter.emit('agent-update',connectedAgent);
 			});
@@ -95,6 +97,7 @@ function listenForAgentEvents(agent, callback) {
 				});
 				logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
 			};
+			connectedAgent.status='READY';
 	    	agentControl.updateAgent(connectedAgent, function() {
 				agentControl.eventEmitter.emit('agent-update',connectedAgent);
 			});
@@ -221,6 +224,16 @@ function AgentEventHandler(io) {
 			io.emit('agent-add',agent);
 		} catch (err) {
 		
+		}
+	});
+	executionControl.eventEmitter.on('job-start', function(agent, job) {
+		
+		try {
+			logger.info("broadcasting "+job.id+' start.');
+			io.emit('job-start', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+								, {id: job.id, status: job.status, progress: job.progress});
+		} catch(err) {
+			logger.error("unable to broadcast job start event");
 		}
 	});
 	executionControl.eventEmitter.on('job-update', function(agent, job) {

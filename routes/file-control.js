@@ -74,7 +74,7 @@ saveFile = function(file, data, res) {
 	        	message: 'File Saved.'
 	        });
 	    }
-	}); 
+	});
 };
 
 exports.deleteFile = function(filename, callback) {
@@ -175,14 +175,12 @@ exports.addFile = function(addPath, fileName, isDirectory, callback) {
 };
 
 exports.load = function(repoURL, callback) {
-	fileURL =url.parse(repoURL);
-	logger.debug("repo="+fileURL.protocol);
-	logger.debug("file="+fileURL.pathname);
-	repo = fileURL.protocol;
-	repoDir = repos[fileURL.protocol];
-	filePath = repoDir+fileURL.path;
-
-	if (fs.existsSync(filePath)) {
+	repoControl.getFilePath(repoURL, function(err, filePath) {
+		if (err) {
+			callback(err);
+			return;
+		}
+		if (fs.existsSync(filePath)) {
 	
 		fs.readFile(filePath, 'utf8', function (err,data) {
 		  if (err) {
@@ -193,9 +191,12 @@ exports.load = function(repoURL, callback) {
 		  callback(undefined, data);
 		});
 		
-	} else {
-		callback(new Error('job does not exist: '+repoURL));
-	}
+		} else {
+			callback(new Error('job does not exist: '+repoURL));
+		}
+	});
+
+	
 	
 	
 }

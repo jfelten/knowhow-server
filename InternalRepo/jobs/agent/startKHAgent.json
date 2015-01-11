@@ -1,0 +1,43 @@
+{
+  "id": "starts KH Agent",
+  "working_dir": "/tmp/KHAgent",
+  "options": {
+    "timeoutms": 360000
+  },
+  "files": [],
+  "shell": {
+    "command": "ssh",
+    "args": [
+      "-o",
+      "StrictHostKeyChecking=no",
+      "${USER}@${HOST}"
+    ],
+    "onConnect": {
+      "timeoutms": 5000,
+      "responses": {
+        "login": "${USER}",
+        "password": "${PASSWORD}"
+      },
+      "waitForPrompt": "[#]",
+      "errorConditions": [
+        "timed out",
+        "denied"
+      ]
+    },
+    "onExit": {
+      "command": "exit\r\n"
+    }
+  },
+  "script": {
+    "env": {
+      "USER": "root",
+      "PASSWORD": "z3nz1c.c0m",
+      "HOST": "10.10.1.3"
+    },
+    "commands": [
+      {
+        "command": "nohup startKHAgent > /dev/null 2>&1&"
+      }
+    ]
+  }
+}

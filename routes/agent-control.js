@@ -16,6 +16,7 @@ var io =  require('socket.io-client');
 var fileControl = require('../routes/file-control');
 var ss = require('socket.io-stream');
 var fs = require('fs');
+var executionControl = require('./execution-control');
 
 //deliver the agent files
 var pathlib = require('path');
@@ -31,11 +32,14 @@ eventEmitter.on('package-complete',function(agent){
 
 exports.eventEmitter = eventEmitter;
 
-addDefaultAgent = function(callback) {
-	defaultAgent = {
+defaultAgent = {
 		host: "localhost",
 		port: 3000
-	}
+	};
+exports.defaultAgent = defaultAgent;
+
+addDefaultAgent = function(callback) {
+	
 	db.findOne(defaultAgent,function(err, doc) {
 		if(err) {
 			logger.error(err.message);
@@ -177,9 +181,15 @@ exports.doesAgentIdExist = function(agentId, callback) {
 	var queryParams = {}
 	queryParams._id = agentId;
 	db.findOne(queryParams, function(err, doc) {
-		if (err || !doc) {
+		if (err) {
 			if (callback) {
 				callback(err);
+			}
+			return false;
+		}
+		if (!doc) {
+			if (callback) {
+				callback(new Error("Agent does not exist"));
 			}
 			return false;
 		}
@@ -264,87 +274,44 @@ exports.deleteAgent = function( agent, callback) {
 };
 
 install = function(main_callback) {
-	var agent = this.agent;
-	var serverInfo = this.serverInfo;
-	var commands = this.commands;
-	var execCommands = new Array(commands.length);
+    agent=this.agent;
+    fileControl.load("InternalRepo:///jobs/agent/installKHAgent.json", function(err,content) {
+			if (err) {
+				main_callback(err);
+				return;
+			}
+			try {
+				job = JSON.parse(content);
+				job.script.env.USER=agent.login;
+				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
+				job.script.env.HOST=agent.host;
+			} catch(err) {
+				main_callback(err);
+				return;
+			}
+			executionControl.executeJob(defaultAgent,job,main_callback);
+		});
 	
-	//for starting agent as a different user
+};
 
-	execCommand = function(callback) {
-	    	var comm = this.cmd;
-	    	var conn = new Connection();
-	    	conn.on('ready', function() {
-	    		
-	    		conn.exec(comm, function(err, stream) {
-		    	    if (err) throw err;
-		    	    stream.on('exit', function(code, signal) {
-		    	      logger.info('Stream :: exit :: code: ' + code + ', signal: ' + signal);
-		    	    });
-		    	    stream.on('close', function() {
-		    	    	logger.info('Stream :: close');
-		    	      conn.end();
-		    	    });
-		    	    stream.on('data', function(data, extended) {
-		    	          logger.debug((extended === 'stderr' ? 'STDERR: ' : '')
-		    	                     + data);
-		    	    });
-		    	    stream.on('exit', function(code, signal) {
-		    	          conn.end();
-		    	          
-		    	    });
-		    	    conn.on('error', function(err) {
-		    	    	logger.error('Connection :: error :: ' + err);
-		    	    	callback(new Error("unable to connect to: "+agent.host));
-		    	    });
-		    	    conn.on('end', function() {
-		    	      logger.debug('Connection :: end');
-		    	      
-		    	    });
-		    	    conn.on('close', function(had_error) {
-		    	      console.log('Connection :: close');
-		    	      agent.message=comm;
-		    	      agent.progress+=1;
-		    	      eventEmitter.emit('agent-update',agent);
-		    	      callback();
-		    	    }); 
-		    	    //.stderr.on('data', function(data) {
-		    	    //  console.log('STDERR: ' + data);
-		    	 });
-			}).connect({
-			  host: agent.host,
-			  port: 22,
-			  username: agent.login,
-			  password: decrypt(agent.password,serverInfo.cryptoKey)
-			});
-	    	conn.on('error', function(er) {
-	    		logger.error('unable to connect to: '+agent.host,er.message);
-	    		callback('stop');
-	    	});
-	    	
-	    	
-		};
-	var sudoCMD = '';
-	if (agent.login != agent.user) {	
-		logger.info("using sudo to run job as: "+agent.user);
-  		sudoCMD = 'echo \"'+decrypt(agent.password,serverInfo.cryptoKey)+'\" | sudo -S -u '+agent.user+' ';
-	}
-	var cleanUpCmd = "rm -rf /tmp/"+agent_archive_name+" /tmp/"+node_archive_name
-	for (index in commands) {
-		logger.info("queueing "+index+":"+commands[index]);
-		var command = commands[index];
-	    execCommands[index] = execCommand.bind( {'cmd': sudoCMD+command, 'idx': index});
-	};
-	execCommands[commands.length] = execCommand.bind( {'cmd': cleanUpCmd, 'idx': commands.length});
-	async.series(execCommands,function(err) {
-		if (err) {
-			agent.progress=0;
-			agent.status="ERROR";
-			eventEmitter.emit('agent-update', agent);
-		}
-        logger.info("done");
-        main_callback();
-    });
+startAgent = function(main_callback) {
+    agent=this.agent;
+    fileControl.load("InternalRepo:///jobs/agent/startKHAgent.json", function(err,content) {
+			if (err) {
+				main_callback(err);
+				return;
+			}
+			try {
+				job = JSON.parse(content);
+				job.script.env.USER=agent.login;
+				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
+				job.script.env.HOST=agent.host;
+			} catch(err) {
+				main_callback(err);
+				return;
+			}
+			executionControl.executeJob(defaultAgent,job,main_callback);
+		});
 	
 };
 
@@ -668,10 +635,14 @@ exports.addAgent = function(agent,serverInfo,callback) {
 		
         agent=initAgent(agent,serverInfo);
     	db.insert(agent, function (err, newDoc) {
-    		if (callback) {
-				callback(err);
+    		if (err) {
+    			logger.error(err.message);
+    			logger.error(err.stack);
+	    		if (callback) {
+					callback(err);
+				}
+				return;
 			}
-			return;
 		    logger.debug("added agent: "+newDoc);
 		    agent=newDoc;
 			eventEmitter.emit('agent-add',agent);
@@ -689,8 +660,9 @@ exports.addAgent = function(agent,serverInfo,callback) {
 			function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};
 			var exec = [
 			            //packAgent.bind(function_vars), 
-			            deliverAgent.bind(function_vars), 
+			            //deliverAgent.bind(function_vars), 
 			            install.bind(function_vars),
+			            startAgent.bind(function_vars),
 			            waitForAgentStartUp.bind(function_vars),
 			            registerServer.bind(function_vars),
 			            updateAgentInfoOnAgent.bind(function_vars),

@@ -148,16 +148,16 @@ app.get('*', routes.index);
 /**
 * Start Server
 */
-agentControl.packAgent( function (err) {
-	if (err) {
-		process.exit();
-	}
+//agentControl.packAgent( function (err) {
+//	if (err) {
+//		process.exit();
+//	}
 	http.listen(port, function(){
 	  logger.info('listening on *:'+port);
 	  
 	});
 
-});
+//});
 
 agentControl.addDefaultAgent();
 

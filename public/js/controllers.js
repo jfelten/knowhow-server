@@ -130,27 +130,48 @@ var myModule = angular.module('myApp.controllers', []).
       //loadJobs();
       updateRunningJobs(agent,job);
       $scope.$apply();
-	 
+ 
+    });
+    socket.on('job-start', function(agent,job){
+      console.log('job start message received');
+      if (agent && job && !$scope.runningJobs[agent._id]) {
+	    $scope.runningJobs[agent._id] = {};
+	  }
+	  $scope.runningJobs[agent._id][job.id] = {}
+
+      job.progress=0;
+      updateRunningJobs(agent,job);
+      $scope.message=job.id+" started";
+	  $scope.$apply();
       
     });
     socket.on('job-complete', function(agent,job){
       console.log('job complete message received');
       job.progress=0;
-      updateRunningJobs(agent,job);
+      //updateRunningJobs(agent,job);
+      if ($scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
+      	delete $scope.runningJobs[agent._id][job.id];
+	  }
       $scope.message=job.id+" completed";
 	  $scope.$apply();
       
     });
     socket.on('job-cancel', function(agent,job){
       console.log('job cancel message received');
-      updateRunningJobs(agent,job);
-      $scope.message=job.id+" cancelled";
+      //updateRunningJobs(agent,job);
+      if ($scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
+      	delete $scope.runningJobs[agent._id][job.id];
+      }
+      $scope.message=job.id+" cancelled "+job.status;
 	  $scope.$apply();
       
     });
     socket.on('job-error', function(agent,job){
       console.log('job error message received');
-      updateRunningJobs(agent,job);
+      //updateRunningJobs(agent,job);
+      if ($scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
+      	delete $scope.runningJobs[agent._id][job.id];
+	  }
 	  if (job.status) {
       	$scope.message="error "+job.id+": "+job.status;
       }
@@ -158,14 +179,8 @@ var myModule = angular.module('myApp.controllers', []).
       
     });
     var updateRunningJobs = function(agent,job) {
-    	if (agent && job) {
-	        if (!$scope.runningJobs[agent._id]) {
-	        	$scope.runningJobs[agent._id] = {};
-	        	$scope.runningJobs[agent._id][job.id] = {}
-	        } else if (!$scope.runningJobs[agent._id][job.id]) {
-	        	$scope.runningJobs[agent._id][job.id] = {}
-	        }
-
+    	if (agent && job && $scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
+	        
 	      	$scope.runningJobs[agent._id][job.id].progress=job.progress;
 
 	      	$scope.runningJobs[agent._id][job.id].status=job.status;
@@ -666,9 +681,13 @@ var myModule = angular.module('myApp.controllers', []).
 	    
 	  $scope.saveWorkflow = function() {
 	  	if($scope.selectedFile) {
-			  qs_repo.saveFile($scope.selectedFile.path, editor.get(), function(err, message) {
-			  	$scope.message = message;
-			  });
+	  		  try {
+				  qs_repo.saveFile($scope.selectedFile.path, editor.get(), function(err, message) {
+				  	$scope.message = message;
+				  });
+			  } catch(err) {
+			  	$scope.message = err.message
+			  }
 		}
 	  };
 	  
@@ -731,6 +750,7 @@ var myModule = angular.module('myApp.controllers', []).
 			    }).success(function (data, status, headers, config) {
 			        $scope.agentInfo = data;
 			        console.log("submitted workflow request");
+			        $scope.message = "executing workflow";
 			    }).
 			    error(function (data, status, headers, config) {
 			    	$scope.message = data.message+' : '+status;

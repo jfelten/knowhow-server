@@ -41,7 +41,7 @@ workflow_module.factory("qs_workflow", ["$http","$modal", function ($http,$modal
 	      
 	      //loadJobs();
 	      self.watchedEnvironment = updateJobsForEnvironment(this.env,agent,job);
-	      $scope.$apply();
+	      //$scope.$apply();
 		 
 	      
 	    }.bind({env: this.watchedEnvironment})
@@ -57,7 +57,6 @@ workflow_module.factory("qs_workflow", ["$http","$modal", function ($http,$modal
 	    socket.on('job-cancel', function(agent,job){
 	      console.log('job cancel message received');
 	      self.watchedEnvironment = updateJobsForEnvironment(this.env,agent,job);
-	      $scope.message=job.id+" "+cancelled;
 		  $scope.$apply();
 	      
 	    }.bind({env: this.watchedEnvironment})

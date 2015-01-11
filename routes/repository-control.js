@@ -21,23 +21,27 @@ var KnowhowShell = require('knowhow-shell');
 var baseDirs = ["environments", "jobs", "workflows"];
 
 exports.getFilePath = function(repofilename, callback) {
-	fileURL =url.parse(repofilename);
-	repoName = fileURL.protocol.replace(':','');
-	logger.debug("repo="+repoName);
-	logger.debug("file="+fileURL.pathname);
-	db.findOne({name: repoName}, function(err, doc) {
-		if (err) {
-			callback(err);
-			return;
-		} else {
-			if (!doc) {
-				callback(new Error("invalid repo: "+repoName));
+	try {
+		fileURL =url.parse(repofilename);
+		repoName = repofilename.split(':')[0];
+		logger.debug("repo="+repoName);
+		logger.debug("file="+fileURL.pathname);
+		db.findOne({name: repoName}, function(err, doc) {
+			if (err) {
+				callback(err);
 				return;
+			} else {
+				if (!doc) {
+					callback(new Error("invalid repo: "+repoName));
+					return;
+				}
+				var filePath = doc.path+fileURL.path;
+				callback(undefined, filePath);
 			}
-			var filePath = doc.path+fileURL.path;
-			callback(undefined, filePath);
-		}
-	});
+		});
+	} catch (err) {
+		callback(err);
+	}
 };
 
 var loadRepository = function(repoId, callback) {
