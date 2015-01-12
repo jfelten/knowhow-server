@@ -17,6 +17,8 @@ var fileControl = require('../routes/file-control');
 var ss = require('socket.io-stream');
 var fs = require('fs');
 var executionControl = require('./execution-control');
+var KnowhowShell = require('knowhow-shell');
+var KHShell = new KnowhowShell(eventEmitter)
 
 //deliver the agent files
 var pathlib = require('path');
@@ -289,7 +291,13 @@ install = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			executionControl.executeJob(defaultAgent,job,main_callback);
+			KHShell.executeJob(job,function(err) {
+				if (err) {
+					main_callback(err);
+				} else {
+					main_callback();
+				}
+			});
 		});
 	
 };
@@ -310,7 +318,14 @@ startAgent = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			executionControl.executeJob(defaultAgent,job,main_callback);
+			KHShell.executeJob(job,function(err) {
+				if (err) {
+					main_callback(err);
+				} else {
+					main_callback();
+				}
+			});
+			//executionControl.executeJob(defaultAgent,job,main_callback);
 		});
 	
 };
