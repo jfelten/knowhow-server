@@ -79,7 +79,7 @@ exports.updateAgent = updateAgent;
 
 heartbeat = function(agent, callback) {
 
-	logger.debug('heartbeat checking status for: '+agent.host);
+	//logger.debug('heartbeat checking status for: '+agent.host);
 	
 	var options = {
 		    host : agent.host,
@@ -95,7 +95,7 @@ heartbeat = function(agent, callback) {
 		//logger.debug("processing status response: ");
 		
 		var output = '';
-        logger.debug(options.host + ' ' + res.statusCode);
+        //logger.debug(options.host + ' ' + res.statusCode);
         res.setEncoding('utf8');
 
         res.on('data', function (chunk) {
@@ -103,7 +103,7 @@ heartbeat = function(agent, callback) {
         });
 
         res.on('end', function() {
-        	logger.info("done.");
+        	//logger.info("done.");
             //obj = JSON.parse(output);
         	//logger.debug("agent status check: "+obj.status);        
         	callback(undefined, agent);
@@ -128,8 +128,8 @@ function listAgents(callback) {
 			callback(err);
 			return;
 		}
-		logger.debug('found '+docs.length+' agents');
-		logger.debug(docs);
+		//logger.debug('found '+docs.length+' agents');
+		//logger.debug(docs);
 //		docs.forEach(function(agent) {
 //			console.log(agent);
 //		});
@@ -287,6 +287,9 @@ install = function(main_callback) {
 				job.script.env.USER=agent.login;
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
+				job.script.env.LOGIN=agent.login;
+				job.script.env.PORT=agent.port;
+				job.script.env.AGENT_ID=agent._id;
 			} catch(err) {
 				main_callback(err);
 				return;
@@ -304,6 +307,7 @@ install = function(main_callback) {
 
 startAgent = function(main_callback) {
     agent=this.agent;
+    logger.debug(agent);
     fileControl.load("InternalRepo:///jobs/agent/startKHAgent.json", function(err,content) {
 			if (err) {
 				main_callback(err);
@@ -314,6 +318,9 @@ startAgent = function(main_callback) {
 				job.script.env.USER=agent.login;
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
+				job.script.env.LOGIN=agent.login;
+				job.script.env.PORT=agent.port;
+				job.script.env.AGENT_ID=agent._id;
 			} catch(err) {
 				main_callback(err);
 				return;
@@ -346,7 +353,7 @@ getStatus = function(callback) {
 		logger.info("processing status response: ");
 		
 		var output = '';
-        logger.debug(options.host + ' ' + res.statusCode);
+        //logger.debug(options.host + ' ' + res.statusCode);
         res.setEncoding('utf8');
 
         res.on('data', function (chunk) {
@@ -356,7 +363,7 @@ getStatus = function(callback) {
         res.on('end', function() {
         	logger.info("done.");
             obj = JSON.parse(output);
-        	logger.debug("agent status check: "+obj.status);
+        	//logger.debug("agent status check: "+obj.status);
         	if (obj.status != undefined) {
 				
         		agent.type=obj.type,
