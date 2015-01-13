@@ -22,10 +22,24 @@ run directly from node:
     
 After starting access the agent through a web browser  [http://localhost:3001](http://localhost:3001).
 
-#Key Concepts
+##Key Concepts
 
-Before going further it is necessary to explain what an agent, a repository, a job, and a workflow are.
+####[knowhow-agent](https://github.com/jfelten/knowhow-agent)
 
-##Agent
+A knowhow agent is a simple web application that provides a control interface to execute knowhow jobs.  Knowhow-agents run as a specific user on a specific port(default 3000), and are coordinated by the knowhow-server.
 
-A knowhow agent is a simple web application that provides a way to
+####[knowhow-server](https://github.com/jfelten/knowhow-server)
+
+Knowhow-server, this project, manages agents, jobs, workflows and repositories.  It is a web application accessed through the browser [http://localhost:3001](http://localhost:3001).
+
+####[repository](https://github.com/jfelten/knowhow_example_repo)
+
+A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs have job objects, environments define environment objects, and workflows defined workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See knowhow_example_repo for an example repository structure.
+
+####[job](https://github.com/jfelten/knowhow-shell)
+
+A knowhow job is a json object that represents a task or shell script.  Jobs contain a list of shell commands with reponses to specific text if necessary.  Jobs also define environment variables that can be referenced through the json object for easier automation.  See the [knowhow-shell](https://github.com/jfelten/knowhow-shell) project for how to use knowhow jobs directly from node.
+
+####environment
+
+An environment is a collection of hosts that run knowhow-agents.  Environments are referenced by workflow objects and used to coordinate
