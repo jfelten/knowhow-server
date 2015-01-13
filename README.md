@@ -55,3 +55,10 @@ After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKH
 Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
 
 ![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
+
+Create a simple file repository by clicking the create new empty file repository.  This will create an empty repository in the directory where knowhow-server is running
+
+###Step 2 - start a knowhow-agent running on http://localhost:3000
+
+Navigate to the agents tab and and enter a login/password and host(localhost) click Add Agent.  The agent icon will turn green if successful.
+![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/addAgent.png)
