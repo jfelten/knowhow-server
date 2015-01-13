@@ -53,3 +53,5 @@ After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKH
 ###Step 1 - create a repository
 
 Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
+
+![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
