@@ -69,14 +69,14 @@ Navigate to the agents tab and and enter a login/password and host(localhost) cl
 
 Navigate to the jobs page via the top menu and select MyRepo (or whatever name you chose) on the far left repository dropdown.  Expand the jobs tree by clicking the '+' symbol.  Now click the 'Add New File' button which will open a pop up.  Type "helloWorld.json" or other appropriate name in the text box.  Click the 'Create New File' button.  An empty file should appear in the left tree.  Select it and paste the following text in the edit pane:
 
-        {
-            "id": "hello world job",
-            "working_dir": "./",
-             "options": {
-                "timeoutms": 360000
-            },
-             "files": [],
-            "script": {
+    {
+        "id": "hello world job",
+        "working_dir": "./",
+         "options": {
+            "timeoutms": 360000
+        },
+        "files": [],
+        "script": {
             "env": {
                 "TEST_VAR": "hello",
                 "TEST_VAR2": "world"
