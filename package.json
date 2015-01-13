@@ -1,6 +1,6 @@
 {
   "name": "knowhow-server",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "A personal workflow engine that can manage and use any network connected host",
   "main": "server.js",
   "directories": {
