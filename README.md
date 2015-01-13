@@ -14,9 +14,7 @@ run directly from node:
 
     node server.js
 
-
-
-    startKHServer
+    startKHServer if installed via the [knowhow](https://github.com/jfelten/knowhow)
     
 
     
@@ -34,7 +32,7 @@ Knowhow-server, this project, manages agents, jobs, workflows and repositories. 
 
 ####[repository](https://github.com/jfelten/knowhow_example_repo)
 
-A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs have job objects, environments define environment objects, and workflows defined workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See knowhow_example_repo for an example repository structure.
+A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs have job objects, environments define environment objects, and workflows defined workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See [knowhow_example_repo](https://github.com/jfelten/knowhow_example_repo) for an example repository structure.
 
 ####[job](https://github.com/jfelten/knowhow-shell)
 
@@ -50,8 +48,10 @@ A workflow is a directive of jobs or tasks that get run against an environment.
 
 ##Quickstart
 
-After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKHServer if you installed the [knowhow](https://github.com/jfelten/knowhow) project. Once running open a broswer to the server ex: [http://localhost:3001](http://localhost:3001).
+After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKHServer if installed via the [knowhow](https://github.com/jfelten/knowhow) project. Once running open a broswer to the server ex: [http://localhost:3001](http://localhost:3001).
 
 ###Step 1 - create a repository
 
 Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
+
+![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
