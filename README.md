@@ -9,17 +9,14 @@ NOTE: This currently only works on Unix based systems.  Please create an issue i
 
 # Installation
 
-
     npm install knowhow-server
 
 run directly from node:
 
     node server.js
-
     startKHServer if installed via the [knowhow](https://github.com/jfelten/knowhow)
     
 
-    
 After starting access the agent through a web browser  [http://localhost:3001](http://localhost:3001).
 
 ##Key Concepts
@@ -34,7 +31,7 @@ Knowhow-server, this project, manages agents, jobs, workflows and repositories. 
 
 ####[repository](https://github.com/jfelten/knowhow_example_repo)
 
-A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs have job objects, environments define environment objects, and workflows defined workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See [knowhow_example_repo](https://github.com/jfelten/knowhow_example_repo) for an example repository structure.
+A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs define job objects, environments define environment objects, and workflows define workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See [knowhow_example_repo](https://github.com/jfelten/knowhow_example_repo) for an example repository structure.
 
 ####[job](https://github.com/jfelten/knowhow-shell)
 
@@ -54,7 +51,7 @@ After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKH
 
 ###Step 1 - create a repository
 
-Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
+Navigate to the repositories tab on the left of the top menu.  This should open the new repository subtab.
 
 ![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
 
