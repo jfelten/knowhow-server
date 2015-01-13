@@ -3,7 +3,7 @@ knowhow-server
 
 This is the control application for the knowhow framework.  It acts as a manager for knowhow agents, repositories, jobs, and workflows.  Repositories, jobs and workflows may be created, edited and executed.  Knowhow-server uses socket.io and simple http calls to control agent execution and lifecyle across multiple servers.
 
-This package is the server only.  For the complete package please use the knowhow project.
+This package is the server only.  For the complete package please use the [knowhow](https://github.com/jfelten/knowhow) project.
 
 # Installation
 
@@ -47,3 +47,11 @@ An environment is a collection of hosts that run knowhow-agents.  Environments a
 ####workflow
 
 A workflow is a directive of jobs or tasks that get run against an environment.
+
+##Quickstart
+
+After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKHServer if you installed the [knowhow](https://github.com/jfelten/knowhow) project. Once running open a broswer to the server ex: [http://localhost:3001](http://localhost:3001).
+
+###Step 1 - create a repository
+
+Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
