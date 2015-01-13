@@ -2,7 +2,7 @@
   "id": "starts KH Agent",
   "working_dir": "/tmp/KHAgent",
   "options": {
-    "timeoutms": 360000
+    "timeoutms": 10000
   },
   "files": [],
   "shell": {
@@ -15,10 +15,9 @@
     "onConnect": {
       "timeoutms": 5000,
       "responses": {
-        "login": "${USER}",
-        "password": "${PASSWORD}"
+        "[Pp]assword": "${PASSWORD}"
       },
-      "waitForPrompt": "[#]",
+      "waitForPrompt": "[#$]",
       "errorConditions": [
         "timed out",
         "denied"
@@ -30,9 +29,13 @@
   },
   "script": {
     "env": {
-      "USER": "root",
-      "PASSWORD": "z3nz1c.c0m",
-      "HOST": "master101.zenzic.com"
+      "USER": "",
+      "PASSWORD": "",
+      "HOST": "",
+      "PORT": "",
+      "LOGIN": "",
+      "AGENT_ID": "",
+      "MODE": "production"
     },
     "commands": [
       {
@@ -48,7 +51,10 @@
         "command": "if [ -d \"knowhow-agent\" ]; then LOCAL_INSTALL=\"true\"; fi"
       },
       {
-        "command": "if [ -n \"${GLOBAL_INSTALL}\" ]; then nohup startKHAgent  > /dev/null 2>&1& elif [ -n \"${LOCAL_INSTALL}\" ]; then node knowhow-agent/agent.js > /dev/null 2 >&1& fi"
+        "command": "AGENT_ARGS=\"--port=${PORT} --user=${USER} --login=${LOGIN} --_id=${AGENT_ID} --mode=${MODE} --workingDir=./\""
+      },
+      {
+        "command": "if [ -n \"${GLOBAL_INSTALL}\" ]; then nohup startKHAgent ${AGENT_ARGS} > /dev/null 2>&1& elif [ -n \"${LOCAL_INSTALL}\" ]; then node knowhow-agent/agent.js ${AGENT_ARGS}> /dev/null 2 >&1& fi"
       }
     ]
   }

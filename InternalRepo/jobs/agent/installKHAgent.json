@@ -2,7 +2,7 @@
   "id": "install KH Agent",
   "working_dir": "/tmp/KHAgent",
   "options": {
-    "timeoutms": 360000
+    "timeoutms": 10000
   },
   "files": [],
   "shell": {
@@ -15,10 +15,9 @@
     "onConnect": {
       "timeoutms": 5000,
       "responses": {
-        "login": "${USER}",
-        "password": "${PASSWORD}"
+        "[Pp]assword": "${PASSWORD}"
       },
-      "waitForPrompt": "[#]",
+      "waitForPrompt": "[#$]",
       "errorConditions": [
         "timed out",
         "denied"
