@@ -5,6 +5,8 @@ This is the control application for the knowhow framework.  It acts as a manager
 
 This package is the server only.  For the complete package please use the [knowhow](https://github.com/jfelten/knowhow) project.
 
+NOTE: This currently only works on Unix based systems.  Please create an issue if there is interest in running on windows.
+
 # Installation
 
 
@@ -55,3 +57,34 @@ After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKH
 Navigate to the repositories tab on the left of the top menu.  This should open the create repository subtab
 
 ![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
+
+Create a simple file repository by clicking the create new empty file repository.  This will create an empty repository in the directory where knowhow-server is running
+
+###Step 2 - start a knowhow-agent running on http://localhost:3000
+
+Navigate to the agents tab and and enter a login/password and host(localhost) click Add Agent.  The agent icon will turn green if successful.
+![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/addAgent.png)
+
+###Step 3 - create a simple "hello world" job and execute on the localhost agent
+
+Navigate to the jobs page via the top menu and select MyRepo (or whatever name you chose) on the far left repository dropdown.  Expand the jobs tree by clicking the '+' symbol.  Now click the 'Add New File' button which will open a pop up.  Type "helloWorld.json" or other appropriate name in the text box.  Click the 'Create New File' button.  An empty file should appear in the left tree.  Select it and paste the following text in the edit pane:
+
+    {
+        "id": "hello world job",
+        "working_dir": "./",
+         "options": {
+            "timeoutms": 360000
+        },
+        "files": [],
+        "script": {
+            "env": {
+                "TEST_VAR": "hello",
+                "TEST_VAR2": "world"
+            },
+            "commands": [
+                {
+                    "command": "echo $TEST_VAR $TEST_VAR2!"
+                }
+            ]
+        }
+    }
