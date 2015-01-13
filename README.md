@@ -42,4 +42,8 @@ A knowhow job is a json object that represents a task or shell script.  Jobs con
 
 ####environment
 
-An environment is a collection of hosts that run knowhow-agents.  Environments are referenced by workflow objects and used to coordinate
+An environment is a collection of hosts that run knowhow-agents.  Environments are referenced by workflow objects to coordinate across different hosts.
+
+####workflow
+
+A workflow is a directive of jobs or tasks that get run against an environment.
