@@ -164,7 +164,7 @@ agentControl.addDefaultAgent();
 //do a heartbeat check each minute and make sure socket connections are made
 var agentCheck = function() {
 	agentControl.listAgents(function (err, agents) {
-		logger.debug(agents);
+		//logger.debug(agents);
 		var agentConnects = new Array(agents.length);
 		for (agentIndex in agents) {
 			var agent = agents[agentIndex]; 
