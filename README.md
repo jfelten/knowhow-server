@@ -90,3 +90,9 @@ Navigate to the jobs page via the top menu and select MyRepo (or whatever name y
     }
 
 ![helloWorldJob](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/helloWorldJob.png)
+
+Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".
+
+###More advanced examples
+
+There will be a workflow example added soon and better examples that do real work.
