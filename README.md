@@ -63,7 +63,7 @@ Create a simple file repository by clicking the create new empty file repository
 ###Step 2 - start a knowhow-agent running on http://localhost:3000
 
 Navigate to the agents tab and and enter a login/password and host(localhost) click Add Agent.  The agent icon will turn green if successful.
-![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/addAgent.png)
+![addAgent](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/addAgent.png)
 
 ###Step 3 - create a simple "hello world" job and execute on the localhost agent
 
@@ -88,3 +88,11 @@ Navigate to the jobs page via the top menu and select MyRepo (or whatever name y
             ]
         }
     }
+
+![helloWorldJob](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/helloWorldJob.png)
+
+Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".
+
+###More advanced examples
+
+There will be a workflow example added soon and better examples that do real work.
