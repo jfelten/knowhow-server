@@ -1,7 +1,7 @@
 knowhow-server
 ==============
 
-This is the control application for the knowhow framework.  It acts as a manager for knowhow agents, repositories, jobs, and workflows.  Repositories, jobs and workflows may be created, edited and executed.  Knowhow-server uses socket.io and simple http calls to control agent execution and lifecyle across multiple servers.
+This is the control application for the knowhow framework.  It acts as a manager for knowhow agents, repositories, jobs, and workflows.  Repositories, jobs and workflows may be created, edited and executed though the UI.  Knowhow-server uses socket.io and simple http calls to control agent execution and lifecyle across multiple servers.
 
 This package is the server only.  For the complete package please use the [knowhow](https://github.com/jfelten/knowhow) project.
 
@@ -31,7 +31,7 @@ Knowhow-server, this project, manages agents, jobs, workflows and repositories. 
 
 ####[repository](https://github.com/jfelten/knowhow_example_repo)
 
-A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: ex jobs define job objects, environments define environment objects, and workflows define workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See [knowhow_example_repo](https://github.com/jfelten/knowhow_example_repo) for an example repository structure.
+A collection of json objects, and other dependent files that represent jobs, environments, and workflows.  Repositories are currently file based and is a directory with the following top folders: environments, jobs, workflows.  Each folder contains the specifc types of objects: jobs for job objects, environments environment json objects, and workflows for workflow objects.  The may be other nested folder structures underneath one of the top 3 directories.  Eventually there will be database based repositories.  See [knowhow_example_repo](https://github.com/jfelten/knowhow_example_repo) for an example repository structure.
 
 ####[job](https://github.com/jfelten/knowhow-shell)
 
@@ -88,8 +88,8 @@ Navigate to the jobs page via the top menu and select MyRepo (or whatever name y
 
 ![helloWorldJob](https://raw.githubusercontent.com/jfelten/knowhow-server/master/docs/screenshots/helloWorldJob.png)
 
-Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".
+Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".  Congratulations now please put knowhow to work!
 
-###More advanced examples
+###More advanced examples - Adding a an environment and workflow
 
 There will be a workflow example added soon and better examples that do real work.
