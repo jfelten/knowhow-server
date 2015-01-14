@@ -53,7 +53,7 @@ After installing execute either: node <KHSERVER_INSTALL_DIR>server.js or startKH
 
 Navigate to the repositories tab on the left of the top menu.  This should open the new repository subtab.
 
-![repositories](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/repository.png)
+![repositories](https://raw.githubusercontent.com/jfelten/knowhow-server/master/docs/screenshots/repository.png)
 
 Create a simple file repository by clicking the create new empty file repository.  This will create an empty repository in the directory where knowhow-server is running
 
@@ -86,7 +86,7 @@ Navigate to the jobs page via the top menu and select MyRepo (or whatever name y
         }
     }
 
-![helloWorldJob](https://github.com/jfelten/knowhow-server/blob/master/docs/screenshots/helloWorldJob.png)
+![helloWorldJob](https://raw.githubusercontent.com/jfelten/knowhow-server/master/docs/screenshots/helloWorldJob.png)
 
 Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".
 
