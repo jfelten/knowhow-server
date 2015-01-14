@@ -14,7 +14,11 @@ NOTE: This currently only works on Unix based systems.  Please create an issue i
 run directly from node:
 
     node server.js
-    startKHServer if installed via the [knowhow](https://github.com/jfelten/knowhow)
+
+or if installed via [knowhow](https://github.com/jfelten/knowhow):
+
+    startKHServer
+
     
 
 After starting access the agent through a web browser  [http://localhost:3001](http://localhost:3001).
