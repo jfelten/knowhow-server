@@ -14,23 +14,18 @@
 					label.sr-only.control-label(for="login")
 						| Login
 					input(type="text" id="login" name="login" ng-model='agent.login' placeholder="Enter login*")
-				.form-group
-					.input-group-addon /
+				.input-group /
 				.form-group
 					label.sr-only.control-label(for="password")
 					input(type="password" id="password" name="password" ng-model='agent.password' placeholder="Enter Password*")
-				.form-group
-					.input-group-addon @
+				.input-group @
 				.form-group
 					label.sr-only(for="host")
 					input(type="text" id="host" name="host" ng-model='agent.host' placeholder="Enter host name*")
-				.form-group
-					.input-group-addon :
+				.input-group :
 				.form-group
 					label.sr-only(for="port")
 					input(type="text" id="port" name="port" ng-model='agent.port' size="5" placeholder="port ")
-				.form-group
-					input(type="text" name="user" ng-model='agent.user' placeholder="Enter sudo user")
 				.form-group
 					&nbsp;
 					button.btn.btn-primary(ng-click='addAgent(agent)' ) Add Agent
@@ -47,10 +42,8 @@
 			&nbsp; {{agent.message}}
 		.col-md-6.col-lg-6
 			span.pull-left
-				progressbar(ng-hide="agent.progress < 1" animate="agent.progress" value="agent.progress" type="success")
-						{{agent.status}}
-
-	
+				progressbar(ng-hide="!agent.progress || agent.progress < 1" animate="agent.progress" value="agent.progress" type="success")
+						{{agent.status}}	
 	script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js')
 	script(src='http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js')
 	script(type='text/javascript').
