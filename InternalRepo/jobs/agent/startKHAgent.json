@@ -35,14 +35,15 @@
       "PORT": "",
       "LOGIN": "",
       "AGENT_ID": "",
+      "AGENT_DIR": "/tmp/${AGENT_ID}",
       "MODE": "production"
     },
     "commands": [
       {
-        "command": "mkdir -p ${working_dir}"
+        "command": "mkdir -p ${AGENT_DIR}"
       },
       {
-        "command": "cd ${working_dir}"
+        "command": "cd ${AGENT_DIR}"
       },
       {
         "command": "type startKHAgent >/dev/null 2>&1 || echo \"KHAgent is not installed\"; GLOBAL_INSTALL=\"false\""

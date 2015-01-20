@@ -31,14 +31,16 @@
     "env": {
       "USER": "root",
       "PASSWORD": "z3nz1c.c0m",
-      "HOST": "10.10.1.1"
+      "HOST": "10.10.1.1",
+      "AGENT_ID": "KHAgent",
+      "AGENT_DIR": "/tmp/${AGENT_ID}"
     },
     "commands": [
       {
-        "command": "mkdir -p ${working_dir}"
+        "command": "mkdir -p ${AGENT_DIR}"
       },
       {
-        "command": "cd ${working_dir}"
+        "command": "cd ${AGENT_DIR}"
       },
       {
         "command": "type startKHAgent >/dev/null 2>&1 || echo \"KHAgent is not installed\"; GLOBAL_INSTALL=\"false\""
