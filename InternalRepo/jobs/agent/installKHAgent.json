@@ -31,10 +31,10 @@
   },
   "script": {
     "env": {
-      "USER": "root",
-      "PASSWORD": "z3nz1c.c0m",
-      "HOST": "10.10.1.1",
-      "AGENT_ID": "KHAgent",
+      "USER": "",
+      "PASSWORD": "",
+      "HOST": "",
+      "AGENT_ID": "",
       "AGENT_DIR": "/tmp/${AGENT_ID}"
     },
     "commands": [
