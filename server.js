@@ -28,7 +28,7 @@ function compile(str, path) {
 	    .use(nib());
 	};
 app.use(stylus.middleware(
-		  { src: __dirname + '/public'
+		  { src: __dirname + '/public/css'
 		  , compile: compile
 		  }
 		));
