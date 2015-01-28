@@ -642,8 +642,7 @@ exports.addAgent = function(agent,serverInfo,callback) {
 	function_vars = {agent: agent};
 	
 	var exec = [checkAgent.bind(function_vars)
-	            
-	            ];
+	     ];
 	async.series(exec,function(err) {
 		if (err) {
 			logger.error('agent error' + err);

@@ -14,7 +14,7 @@ var completedTasks = {};
 exports.initAgents = function(req, res) {
 	var credentials = req.body.credentials;
 	var environment = req.body.environment;
-	if (environment.agents && credentials) {
+	if (environment && environment.agents) {
 		initAgents(credentials, environment.agents, function(err, agents) {
 			if (err) {
 				logger.error(err.message);
@@ -59,19 +59,29 @@ initAgents = function(credentials, agents, callback) {
 						return;
 					}
 					newAgent = {}; //order of the attributes matters
-					newAgent.login = credentials.login;
-					newAgent.password = credentials.password;
 					newAgent.host =  initAgent.host;
-					
-					if (credentials.user) {
-						newAgent.user = credentials.user;
-					} else {
-						newAgent.user = credentials.login;
-					}
 					newAgent.port =  parseInt(initAgent.port);
+					if (credentials) {
+						newAgent.login = credentials.login;
+						newAgent.password = credentials.password;
+						
+						
+						if (credentials.user) {
+							newAgent.user = credentials.user;
+						} else {
+							newAgent.user = credentials.login;
+						}
+					}
+					
 					logger.info("initializing agent: "+newAgent.user+"@"+newAgent.host+":"+newAgent.port);
-					agentControl.addAgent(newAgent, api.getServerInfo());
-					callback();
+					agentControl.addAgent(newAgent, api.getServerInfo(), function (err) {
+						if (err) {
+							callback(err);
+						} else {
+							callback();
+						}
+					});
+					
 				});
 			} else if (callback) {
 				callback();

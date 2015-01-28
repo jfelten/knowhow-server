@@ -38,6 +38,11 @@
 			.col-md-12.col-lg-12
 				tabset
 					tab(ng-show="selectedEnv" heading="{{env_tabs[0].title}}" active="env_tabs[0].active" disabled="env_tabs[0].disabled")
+						.row(ng-show="selectedEnv")
+							.col-md-6.col-lg-6.btn-group
+								.pull-left
+									.job-message-block(ng-show="env-message")
+										{{env-message}}
 							.row.agent-table-header(ng-show="selectedEnv")
 								.col-md-12.col-lg-12
 									form.form-inline(role="form")
@@ -46,7 +51,7 @@
 												| Login
 											input(type="text" id="login" name="login" ng-model='credentials.login' placeholder="Enter login*")
 										.form-group
-											.input-group-addon /
+											.input-group /
 										.form-group
 											label.sr-only(for="password")
 											input(type="password" id="password" name="password" ng-model='credentials.password' placeholder="Enter Password*")

@@ -58,7 +58,20 @@ p
 						button.btn.btn-primary(ng-hide="currentRunningJob.progress > 0" type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="saveJob()") Save
 			
 			.row
-				.col-md-9.col-lg-12.jobs-textarea(id="jsoneditor")
+				.col-md-9.col-lg-12
+					tabset
+						tab(heading="edit" active="job_tabs[0].active" disabled="job_tabs[0].disabled")
+								.jobs-textarea(id="jsoneditor")
+						tab(ng-show="selectedAgent" heading="output" active="job_tabs[1].active" disabled="job_tabs[1].disabled")
+							.drop-shadow.jobs-textarea
+								.drop-shadow-header
+									.pull-right
+										button.btn.btn-primary(type="button" ng-model="singleModel" btn-checkbox btn-checkbox-true="1" btn-checkbox-false="0" ng-click="clearOutput()" )|clear
+								.log-container
+									pre.log-container
+										{{output}}
+										
+	
  
 div
 	script(type="text/ng-template" id="directoryWarning")

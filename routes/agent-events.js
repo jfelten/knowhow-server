@@ -8,7 +8,24 @@ var io;
 exports.agentSockets=agentSockets;
 
 function listenForEvents(agent, socket) {
-	socket.on('job-update', function(job){
+		socket.on('execution-complete', function(command) {
+    		if (command) {
+				logger.debug("execution complete");
+				logger.debug(command);
+				executionControl.eventEmitter.emit('execution-complete',agent, command);
+			}
+			
+		});
+		socket.on('execution-error', function(command) {
+    		if (command) {
+				logger.debug("execution error");
+				executionControl.eventEmitter.emit('execution-error',agent, command);
+			}
+			
+		});
+		
+		
+		socket.on('job-update', function(job){
     		if (job) {
 				logger.debug("job update");
 				logger.debug(job.id+" progress="+job.progress+" status="+job.status);
@@ -50,6 +67,7 @@ function listenForAgentEvents(agent, callback) {
 	}
 
 	agentSockets[agent._id].eventSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/agent-events');
+	listenForEvents(agent, agentSockets[agent._id].eventSocket);
 	logger.info("connecting to: "+agent.host+":"+agent.port+'/agent-events' ); 
     agentSockets[agent._id].eventSocket.on('connect', function() { 
     	 agentControl.heartbeat(agent, function (err, connectedAgent) {
@@ -65,7 +83,7 @@ function listenForAgentEvents(agent, callback) {
 	    	agentControl.updateAgent(connectedAgent, function() {
 				agentControl.eventEmitter.emit('agent-update',connectedAgent);
 			});
-    		listenForEvents(agent, agentSockets[agent._id].eventSocket);
+    		
     	});
     	 
     }).on('error', function(err) {
@@ -85,7 +103,6 @@ function listenForAgentEvents(agent, callback) {
 	    	agentControl.updateAgent(connectedAgent, function() {
 				agentControl.eventEmitter.emit('agent-update',connectedAgent);
 			});
-    		listenForEvents(agent, agentSockets[agent._id].eventSocket);
     	});
     }).on('disconnect', function() {
     	agentControl.heartbeat(agent, function (err, connectedAgent) {
@@ -299,6 +316,27 @@ function AgentEventHandler(io) {
 		 	logger.error("invalid job error event");
 		 }
 	});
+	executionControl.eventEmitter.on('execution-complete', function(agent, command) {
+		
+		try {
+			logger.info("broadcasting execution complete.");
+			io.emit('execution-complete', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+								, command);
+		} catch(err) {
+			logger.error("unable to broadcast execution complete event");
+		}
+	});
+	executionControl.eventEmitter.on('execution-error', function(agent, command) {
+		
+		try {
+			logger.info("broadcasting execution error.");
+			io.emit('execution-complete', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+								, command);
+		} catch(err) {
+			logger.error("unable to broadcast execution error event");
+		}
+	});
+	
 	
 }
 

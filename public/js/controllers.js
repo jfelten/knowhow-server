@@ -107,10 +107,11 @@ var myModule = angular.module('myApp.controllers', []).
        });
      };
   }).
-  controller('JobsController', function ($scope, $modal, $http, $log, qs_repo, qs_agent) {
+  controller('JobsController', function ($scope, $modal, $http, $timeout, $log, qs_repo, qs_agent) {
   
     
     $scope.runningJobs = {};
+    $scope.output="";
     var loadJobs = function() {
     	$http.get('/api/runningJobsList').
 	    success(function(data) {
@@ -118,6 +119,10 @@ var myModule = angular.module('myApp.controllers', []).
 	    });
     };
     loadJobs();
+    $scope.job_tabs = [
+	    { title:'Edit ', content:'Edit', disabled: false  },
+	    { title:'Logs', content:'Logs', disabled: false }
+	];
     
 	    
   	var socket = io();
@@ -180,6 +185,22 @@ var myModule = angular.module('myApp.controllers', []).
 	  $scope.$apply();
       
     });
+    
+    socket.on('execution-complete', function(agent,command) {
+    	 console.log(command);
+    	 //$scope.runningJobs[agent._id].output+=command.output
+    	 $scope.output+=command.command+"\n";
+    	 $scope.output+=command.output+"\n";
+    });
+    socket.on('execution-error', function(agent,command) {
+    	 console.log('execution error message received');
+    	 //$scope.runningJobs[agent._id].output+=command.output
+    	 $scope.output+=command.output;
+    });
+    $scope.clearOutput = function() {
+    	$scope.output = "";
+    }
+    
     var updateRunningJobs = function(agent,job) {
     	if (agent && job && $scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
 	        
@@ -217,8 +238,14 @@ var myModule = angular.module('myApp.controllers', []).
 	    }
 	  };
 	  
-	  var container = document.getElementById('jsoneditor');
-	  var editor = new JSONEditor(container,options);
+	  var container;
+	  var editor;
+	  $timeout(function() {
+        container = document.getElementById('jsoneditor');
+		console.log('container='+container);
+		editor = new JSONEditor(container,options);
+    }, 1000);
+	  
 	  var tree_handler = function(branch) {
 	  	  //console.log(branch);
 	      console.log('selection='+branch.label+ ' navigating='+navigating+' ext='+branch.ext+' type='+branch.type);
@@ -343,7 +370,7 @@ var myModule = angular.module('myApp.controllers', []).
 			  $scope.message='Please select an agent to execute';
 			  return;
 		  }
-		  
+		   $scope.job_tabs[1].active=true
 		  //get the content from the json editor
 		  var job;
 		  try {
@@ -493,9 +520,11 @@ var myModule = angular.module('myApp.controllers', []).
 			      method: 'POST',
 			      url: '/api/initAgents',
 			      data: data
-			    }).
-			    success(function(data) {
-			    	$scope.workflow.agents = data;
+		    }).
+		    success(function(data) {
+		    	$scope.workflow.agents = data;
+		    }).error( function(data) {
+		    	scope.message = data.message
 		    });
 	  
 	  };
@@ -600,6 +629,7 @@ var myModule = angular.module('myApp.controllers', []).
 	      console.log('selection='+branch.label+ ' navigating='+navigating+' ext='+branch.ext+' type='+branch.type);
 	      $scope.selectedFile = branch; 
 	      $scope.message = undefined;
+	      $scope.env_message = undefined;
 	      if (branch.type == 'file') {
 	    	  qs_repo.loadFile($scope.selectedRepo, branch.path, function(err,data) {
 	    	    //console.log("data="+data);
