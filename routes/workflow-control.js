@@ -332,7 +332,7 @@ seriesTask = function(environment, task, scallback) {
 	async.series(task.executeTasks,function(err,task,agent,job) {
 		if (err) {
 
-			logger.error('job error' + err);
+			logger.error('task error' + err);
 			task.progress=0;
 			task.status=err.syscall+" "+err.code;
 			eventEmitter.emit('task-error',task, agent, job);
@@ -398,24 +398,56 @@ var initRunningTask = function(environment, task, callback) {
 			runningTasks[environment.id][loadedTask.id] = {};
 			runningTasks[environment.id][loadedTask.id].agentJobs={};
 			logger.debug(loadedTask);
-			task.executeTasks = new Array(task['agents'].length);
+			task.executeTasks = new Array();
 			for (index in loadedTask.agents) {
-				var agent = loadedTask.agents[index];
+				var agent = loadedTask.agents[index].agent;
+				var repeat = loadedTask.agents[index].repeat;
 				var job = loadedTask.job;
 				if (agent) {
 					
 					runningTasks[environment.id][loadedTask.id].agentJobs[agent._id]={};
 					runningTasks[environment.id][loadedTask.id].agentJobs[agent._id][loadedTask.job.id] = loadedTask.job;
-					task.executeTasks[index] = function(pcallback) {
-						logger.debug("submitting "+this.job.id+" to: "+agent.designation);
-						jobTask(this.environment, this.task, this.agent, this.job, pcallback);
-					}.bind({agent: agent, job: loadedTask.job, environment: environment, task: loadedTask });
+					if (repeat) {
+						for (repeatIndex in repeat) {
+							var varHash = repeat[repeatIndex];
+							var name = Object.keys(varHash)[0];
+							var value = varHash[name];
+							console.log(varHash);
+							console.log("name="+name+" value="+value);
+							var numericRepeatRE = /\[\d+\-\d+\]/;
+							var firstNum = /\[\d+/;
+							var lastNum = /\d+\]/;
+							if (value.match(numericRepeatRE)[0]) {
+								var start = parseInt(value.match(numericRepeatRE)[0].match(firstNum)[0].replace("[",""));
+								var end = parseInt(value.match(numericRepeatRE)[0].match(lastNum)[0].replace("]",""));
+								
+								for (var i = start; i<end; i++ ) {
+									var newJob = JSON.parse( JSON.stringify( loadedTask.job ) );
+									var envValue = value.replace(numericRepeatRE,i);
+									newJob.script.env.name = envValue;
+									newJob .id=loadedTask.job.id+"("+name+"="+envValue+")";
+									task.executeTasks.push(function(pcallback) {
+										logger.debug("submitting "+this.job.id+" to: "+agent.designation);
+										jobTask(this.environment, this.task, this.agent, this.job, pcallback);
+									}.bind({agent: loadedTask.agents[index].agentObject, job: newJob, environment: environment, task: loadedTask }));
+								}
+							}
+						}
+					} else {
+						task.executeTasks.push(function(pcallback) {
+							logger.debug("submitting "+this.job.id+" to: "+agent.designation);
+							jobTask(this.environment, this.task, this.agent, this.job, pcallback);
+						}.bind({agent: loadedTask.agents[index].agentObject, job: loadedTask.job, environment: environment, task: loadedTask }));
+					}
 				} else {
-					callback(new Error("invalid agent: "+loadedTask.agents[index]+" Please verify agent name."));
+					console.log("INVALID agent");
+					console.log(loadedTask.agents[index]);
+					callback(new Error("invalid agent: "+loadedTask.agents[index].agent+" Please verify agent name."));
 					return;
 				}
 				
 			}
+			console.log("EXECUTE TASKS="+task.executeTasks.length);
 			callback(undefined,loadedTask);
 		});
 	};
@@ -459,10 +491,10 @@ var initRunningTask = function(environment, task, callback) {
 var loadTaskAgents = function(environment, task, callback) {
 	logger.debug(task.agents);
 	for (var agentIndex=0; agentIndex < task.agents.length; agentIndex++) {
-		var designation = task.agents[agentIndex];
+		var designation = task.agents[agentIndex].agent;
 		logger.debug("loading agent info for: "+designation);
 		if (environment.agents[designation]) {
-			task.agents[agentIndex] = environment.agents[designation];
+			task.agents[agentIndex].agentObject = environment.agents[designation];
 		} else {
 			callback(new Error("Invalid agent designation: "+designation));
 			return;
