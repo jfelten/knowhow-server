@@ -94,7 +94,7 @@ Navigate to the jobs page via the top menu and select MyRepo (or whatever name y
 
 Now select the localhost agent from the agents dropdown above the edit pane.  Click Execute.  The will submit the hello world job to the agent and "echo "hello world!".  Congratulations now please put knowhow to work!
 
-###More advanced examples - Adding a an environment and workflow
+###More advanced examples - Adding an environment and workflow
 
 Please see the [Docker example](https://github.com/jfelten/knowhow_example_repo/tree/master/jobs/docker) for a tutorial on how to use workflows to create and configure environments.
 
