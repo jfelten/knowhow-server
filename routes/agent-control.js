@@ -36,7 +36,7 @@ exports.eventEmitter = eventEmitter;
 
 defaultAgent = {
 		host: "localhost",
-		port: 3000
+		port: 3141
 	};
 exports.defaultAgent = defaultAgent;
 
@@ -362,17 +362,23 @@ getStatus = function(callback) {
 
         res.on('end', function() {
         	logger.info("done.");
-            obj = JSON.parse(output);
-        	//logger.debug("agent status check: "+obj.status);
-        	if (obj.status != undefined) {
-				
-        		agent.type=obj.type,
-				agent.startTime=obj.startTime
-				agent.status=obj.status;
-				agent.mode=obj.mode;
-        		updateAgent(agent);
-        	}            
-            callback();
+        	try {
+            	obj = JSON.parse(output);
+	        	//logger.debug("agent status check: "+obj.status);
+	        	if (obj.status != undefined) {
+					
+	        		agent.type=obj.type,
+					agent.startTime=obj.startTime
+					agent.status=obj.status;
+					agent.mode=obj.mode;
+	        		updateAgent(agent);
+	        	}            
+	            callback();
+	        } catch(err) {
+	        	logger.error(err.message);
+	        	logger.error(err.stack);
+	        	callback(err);
+	        }
             
         });
         //res.end();
