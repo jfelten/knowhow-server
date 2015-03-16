@@ -4,11 +4,10 @@
 		.col-md-6.col-lg-6
 			h4
 				| All Agents &#42; = required
-		.col-md-6.col-lg-6		
-			.job-message-block(ng-show="message")
-						{{message}}
+		.col-md-6.col-lg-6 
+			.job-message-block(ng-show="message") | {{message}}
 	.row
-		.col-md-12.col-lg-12			
+		.col-md-12.col-lg-12 		
 			form.form-inline(role="form")
 				.form-group
 					label.sr-only.control-label(for="login")
@@ -27,7 +26,7 @@
 					label.sr-only(for="port")
 					input(type="text" id="port" name="port" ng-model='agent.port' size="5" placeholder="port ")
 				.form-group
-					&nbsp;
+					| &nbsp;
 					button.btn.btn-primary(ng-click='addAgent(agent)' ) Add Agent
 
 	.row(ng-repeat="agent in connectedAgents")
@@ -36,14 +35,14 @@
 			i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
 			i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status=='ERROR'")
 			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")  
-			&nbsp;
-			a(href="http://{{agent.host}}:{{agent.port}}" target="__blank")
-						{{agent.user}}@{{agent.host}}:{{agent.port}}
-			&nbsp; {{agent.message}}
+			| &nbsp;
+			a(href="http://{{agent.host}}:{{agent.port}}" target="__blank") 
+				{{agent.user}}@{{agent.host}}:{{agent.port}} 
+			| &nbsp; {{agent.message}}
 		.col-md-6.col-lg-6
 			span.pull-left
 				progressbar(ng-hide="!agent.progress || agent.progress < 1" animate="agent.progress" value="agent.progress" type="success")
-						{{agent.status}}	
+					{{agent.status}}
 	script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js')
 	script(src='http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js')
 	script(type='text/javascript').

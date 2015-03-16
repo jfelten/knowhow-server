@@ -344,6 +344,17 @@ p {
   padding-top: 15px;
   padding-bottom: 0px;
 }
+.kh-version {
+  vertical-align: middle;
+  horizontal-align: middle;
+  float: bottom;
+  color: #428bca;
+  font-size: 13px;
+  padding-left: 0px;
+  padding-right: 15px;
+  padding-top: 15px;
+  padding-bottom: 0px;
+}
 .qs-navbar {
   float: bottom;
 }
