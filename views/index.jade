@@ -13,8 +13,10 @@ block content
 					.qs-navbar
 						ul.serverName
 							| {{serverInfo.name}}:{{serverInfo.port}}
+						.kh-version.pull-right 
+								| knowhow-server version: {{serverInfo.version}}
 						ul.nav.navbar-nav
-							- var obj = { '/repositories':'Repositories',  '/agents':'Agents', '/jobs':'Jobs', '/workflows':'Workflows', '/logs':'Logs',  '/about':'About'  }
+							- var obj = { '/repositories':'Repositories',  '/agents':'Agents', '/jobs':'Jobs', '/workflows':'Workflows', '/logs':'Logs' }
 								- each val, key in obj
 									- if (id == key)
 										li.active
@@ -24,8 +26,9 @@ block content
 											a(href='#{key}') #{val}
 		.qs-container(ng-view)
 		.qs-footer
-			|  Started: {{serverInfo.started}} Copyright 2014 v
-			span(app-version)
+			|  Started: {{serverInfo.started}} Copyright {{serverInfo.copyright}} version&nbsp;
+			span
+				{{serverInfo.version}} 
 		
 		script(src='js/lib/angular-file-upload/angular-file-upload-shim.min.js')
 		script(src='js/lib/angular-1.2.9/angular.js')

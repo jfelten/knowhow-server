@@ -27,8 +27,10 @@ function compile(str, path) {
 	    .set('filename', path)
 	    .use(nib());
 	};
+	
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(stylus.middleware(
-		  { src: __dirname + '/public/css'
+		  { src: __dirname + '/public'
 		  , compile: compile
 		  }
 		));
@@ -138,8 +140,8 @@ app.use(function(req, res, next) {
     res.attachment(); //short for res.set('Content-Disposition', 'attachment')
   next();
 });
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/repo', express.static(path.join(__dirname, 'repo')));
+
+
 
 
 //redirect all others to the index (HTML5 history)

@@ -1,4 +1,6 @@
-p This is the partial for view 2.
-p
-  | Showing of 'interpolate' filter:
-  | {{ 'Current version is v%VERSION%.' | interpolate }}
+
+div(ng-controller='AppCtrl') 
+	p About
+	p
+		| Knowhow server version: {{serverInfo.version}} 
+

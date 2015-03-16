@@ -243,7 +243,9 @@ var myModule = angular.module('myApp.controllers', []).
 	  $timeout(function() {
         container = document.getElementById('jsoneditor');
 		console.log('container='+container);
-		editor = new JSONEditor(container,options);
+		if (container) {
+			editor = new JSONEditor(container,options);
+		}
     }, 1000);
 	  
 	  var tree_handler = function(branch) {
@@ -851,7 +853,9 @@ var myModule = angular.module('myApp.controllers', []).
 	$timeout(function() {
         repo_container = document.getElementById('jsoneditor');
 		console.log('repo_container='+repo_container);
-		repo_editor = new JSONEditor(repo_container,options);
+		if (repo_container) {
+			repo_editor = new JSONEditor(repo_container,options);
+		}
     }, 1000);
     
 	
