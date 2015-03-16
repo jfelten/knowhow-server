@@ -26,13 +26,17 @@ exports.listAgents = function(req, res) {
 
 getServerInfo = function() {
     var os = require("os");
+    var pjson = require('../package.json');
 	serverInfo = {
+	  		version: pjson.version,
+	  		copyright: moment().format('YYYY'),
 			name: os.hostname(),
 		    started: startTime,
 		    port: server.port,
 		    workingDir: require('process').cwd(),
 		    cryptoKey: 	'd6F3Efea'
 	};
+	
 	return serverInfo;
 };
 exports.getServerInfo = getServerInfo;
