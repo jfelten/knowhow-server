@@ -444,14 +444,17 @@ registerServer = function(callback) {
 };
 
 updateAgentInfoOnAgent = function(callback) {
-	var agent = this.agent;
 	var serverInfo = this.serverInfo
+	var agent = this.agent;
+	agent.encyrptKey = serverInfo.cryptoKey;
+	agent.passwordEnc = agent.password;
+	
 	logger.info('updating agent properties on: '+agent.host+':'+agent.port);
 	// prepare the header
 	var headers = {
 	    'Content-Type' : 'application/json',
 	    'Content-Length' : Buffer.byteLength(JSON.stringify(agent) , 'utf8'),
-	    'Content-Disposition' : 'form-data; name="agents'
+	    'Content-Disposition' : 'form-data; name="agent'
 	};
 
 	// the post options
@@ -470,19 +473,26 @@ updateAgentInfoOnAgent = function(callback) {
 	  console.log("headers: ", res.headers);
 
 	    res.on('data', function(data) {
-	    	if (JSON.parse(data).registered) {
-	    		logger.info('updated agent properties');
-	    		callback();
-	    	} else {
-	    		agent.message = 'Unable to update agent properties';
-	    		eventEmitter.emit('agent-error',agent);
-	    		callback(new Error('Unable to update agent properties'));
-	    	}
-	        logger.info('update agent complete');
+	    	try {
+		    	if (JSON.parse(data).registered) {
+		    		logger.info('updated agent properties');
+		    		callback();
+		    	} else {
+		    		agent.message = 'Unable to update agent properties';
+		    		eventEmitter.emit('agent-error',agent);
+		    		callback(new Error('Unable to update agent properties'));
+		    	}
+		        logger.info('update agent complete');
+		    } catch (err) {
+		    	logger.error(err.stack);
+		    	callback(err);
+		    }
 	    });
 	});
 
 	// write the json data
+
+
 	reqPost.write(JSON.stringify(agent));
 	reqPost.end();
 	reqPost.on('error', function(e) {

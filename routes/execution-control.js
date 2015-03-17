@@ -302,53 +302,53 @@ exports.executeJob = function(agent,job,callback) {
 			};
 		
 			logger.info('Starting Job: '+job.id+' on '+agent.user+'@'+agent.host+':'+agent.port);
-		
-			// do the POST call
-			var reqPost = http.request(options, function(res) {
-				logger.debug("statusCode: ", res.statusCode);
-			    // uncomment it for header details
-				//logger.debug("headers: ", res.headers);
-		
-				 
-		
-			    res.on('data', function(d) {
-			    	logger.debug('result:\n');
-			        process.stdout.write(d+'\n');
-			        if (res.statusCode != 200) {
-					 	logger.error("Unable to execute Job. Response code:"+res.statusCode);
-					 	callback(new Error(JSON.parse(d).message));
-					 	return;
-					 }
-			        logger.debug('\n\nJob request sent. Listening for events and uploading files');
-			        job.status="initializing job"
-			        job.progress=1;
-			        eventEmitter.emit('job-start',agent,job);
+			if (currentJobs[agentId] == undefined) {
+				currentJobs[agentId] = {};
+			}
+			
+	    	logger.info("initializing: "+job.id+" on: "+agent.host+":"+agent.port);
+	    	initiateJob(agentId, jobId, function(err) {//cancel the existing job if it is running
+	    		if (err) {
+	    			callback(err);
+	    			return;
+	    		}
+	    		logger.info("job: "+job.id+" initialized on: "+agent.host+":"+agent.port);
+	    		currentJobs[agentId][jobId] = job;
+	    		currentJobs[agentId].agent=agent;
+				// do the POST call
+				var reqPost = http.request(options, function(res) {
+					logger.debug("statusCode: ", res.statusCode);
+				    // uncomment it for header details
+					//logger.debug("headers: ", res.headers);
+			
+					 
+			
+				    res.on('data', function(d) {
+				    	logger.debug('result:\n');
+				        process.stdout.write(d+'\n');
+				        if (res.statusCode != 200) {
+						 	logger.error("Unable to execute Job. Response code:"+res.statusCode);
+						 	callback(new Error(JSON.parse(d).message));
+						 	return;
+						 }
+				        logger.debug('\n\nJob request sent. Listening for events and uploading files');
+				        job.status="initializing job"
+				        job.progress=1;
+				        eventEmitter.emit('job-start',agent,job);
 			        
 					
 				    //do the work
 	
 						
-						if (currentJobs[agentId] == undefined) {
-							currentJobs[agentId] = {};
-						}
 						
-				    	logger.info("initializing: "+job.id+" on: "+agent.host+":"+agent.port);
-				    	initiateJob(agentId, jobId, function(err) {//cancel the existing job if it is running
-				    		if (err) {
-				    			callback(err);
-				    			return;
-				    		}
-				    		logger.info("job: "+job.id+" initialized on: "+agent.host+":"+agent.port);
-				    		currentJobs[agentId][jobId] = job;
-				    		currentJobs[agentId].agent=agent;
-					   		uploadFiles(agent,job,function(err) {
-					    			if (err) {
-					    				callback(err);
-					    				return;
-					    			} else {
-					    				setJobTimer(agent, job);
-					    				callback(null,jobId+' execution started');
-					    			}
+				   		uploadFiles(agent,job,function(err) {
+				    			if (err) {
+				    				callback(err);
+				    				return;
+				    			} else {
+				    				setJobTimer(agent, job);
+				    				callback(null,jobId+' execution started');
+				    			}
 					    		});
 		
 				    	});
@@ -364,16 +364,17 @@ exports.executeJob = function(agent,job,callback) {
 		//		    }
 				    
 			    });
+			    reqPost.write(JSON.stringify(job));
+				reqPost.end();
+				reqPost.on('error', function(e) {
+				    logger.error(e);
+				    callback(e);
+				    return;
+				});
 			});
 		
 		
-			reqPost.write(JSON.stringify(job));
-			reqPost.end();
-			reqPost.on('error', function(e) {
-			    logger.error(e);
-			    callback(e);
-			    return;
-			});
+			
 		});
 		});
 		

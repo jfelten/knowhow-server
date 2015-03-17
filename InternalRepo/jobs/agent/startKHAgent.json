@@ -38,7 +38,8 @@
       "LOGIN": "",
       "AGENT_ID": "",
       "AGENT_DIR": "/tmp/${AGENT_ID}",
-      "MODE": "production"
+      "MODE": "production",
+      "PASSWORD_ENC": ""
     },
     "commands": [
       {
