@@ -208,7 +208,7 @@ exports.doesAgentIdExist = function(agentId, callback) {
 initAgent = function(agent) {
 	agent_prototype = {
 		host: "",
-		port: "3000",
+		port: "3141",
 		login: "",
 		password: "",
 		user: "",
@@ -500,7 +500,7 @@ checkAgent = function(callback) {
 	if (agent.login != undefined && (agent.user == "" || agent.user == undefined)) {
 		agent.user = agent.login;
 	}
-	if (agent.port == undefined || agent.port == "") {agent.port=3000;};
+	if (agent.port == undefined || agent.port == "") {agent.port=3141;};
 	logger.debug("checking agent user:"+agent.user);
 	db.find({$and: [{user: agent.user}, {port: agent.port}, {host: agent.host}]}, function(err, docs) {
 		logger.debug("found: "+docs.length);

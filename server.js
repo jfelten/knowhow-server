@@ -30,8 +30,9 @@ function compile(str, path) {
 	
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(stylus.middleware(
-		  { src: __dirname + '/public'
-		  , compile: compile
+		  { src: __dirname + '/public/',
+		    dest: __dirname + '/public/', 
+		    compile: compile
 		  }
 		));
 
