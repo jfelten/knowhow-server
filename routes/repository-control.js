@@ -474,7 +474,7 @@ exports.api = {
 			APICall: "/repo/deleteFileRepo",
 			callback: function(req,res) {
 						var repo = req.body.repo;
-						console.log("delete repo: "+repo._id);
+						logger.debug("delete repo: "+repo._id);
 						deleteFileRepo(repo, function(err) {
 							if (err) {
 								logger.error(err.message);
@@ -522,7 +522,7 @@ exports.api = {
 						}
 						var re = new RegExp('~', 'g');
 						newRepo.path=newRepo.path.replace(re,'/');
-						console.log('File [' + fieldname + ']: filename: ' + filename + ', encoding: ' + encoding + ', mimetype: ' + mimetype);
+						logger.debug('File [' + fieldname + ']: filename: ' + filename + ', encoding: ' + encoding + ', mimetype: ' + mimetype);
 	
 						logger.info("repository to: "+newRepo.path);
 						

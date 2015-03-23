@@ -16,7 +16,7 @@ var startTime = moment().format('MMMM Do YYYY, h:mm:ss a');
 exports.listAgents = function(req, res) {
 	agentControl.listAgents(function (err, agents) {
 		if (err) {
-			res.send(500, err);
+			res.send(500, err.message);
 		} else {
 			res.json(agents);
 		}
@@ -53,7 +53,7 @@ exports.fileListForDir = function (req,res) {
 	
 	fileControl.getDirTree(dir, function(err, tree) {
 		if (err) {
-			res.send(500, err);
+			res.send(500, err.message);
 		} else {
 			logger.debug(tree);
 			res.json( {children : [tree]});
@@ -69,7 +69,7 @@ exports.fileContent = function (req,res) {
 	 
 	fileControl.fileContent(filePath,repo, function(err, headers, fileToRead) {
    		if(err) {
-   			res.send(500, err);
+   			res.send(500, err.message);
    			return;
    		} else  {
    			logger.debug(headers);
@@ -87,9 +87,13 @@ exports.addFile = function(req,res) {
 	var fileName = req.query.fileName;
 	var path = req.query.path;
 	var isDirectory = req.query.isDirectory;
-	fileControl.addFile(path,fileName,isDirectory,function(err,newFile) {
+	var content = req.query.content;
+	if (!content) {
+		content = {};
+	}
+	fileControl.addNewFile(path,fileName,content,isDirectory,function(err,newFile) {
 		if (err) {
-			res.send(500, err);
+			res.send(500, err.message);
 			return;
 		}
 		logger.debug(newFile);
@@ -102,7 +106,7 @@ exports.deleteFile = function(req,res) {
 	var fileName = req.query.fileName;
 	fileControl.deleteFile(fileName,function(err) {
 		if (err) {
-			res.send(500, err);
+			res.send(500, err.message);
 			return;
 		}
 		
