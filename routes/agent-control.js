@@ -68,10 +68,24 @@ addDefaultAgent = function(callback) {
 exports.addDefaultAgent = addDefaultAgent;
 
 updateAgent = function(agent, callback) {
-	db.update({ '_id': agent._id}, agent, function(err,docs) {
-		if (callback) {
-			callback(err,docs[0]);
+	loadAgent(agent, function(err, loadedAgent) {
+		if (!loadedAgent) {
+			loadedAgent = agent;
 		}
+		if (agent.message) {
+			loadedAgent.message = agent.message;
+		}
+		if (agent.status) {
+			loadedAgent.status = agent.status;
+		}
+		if (agent.progress) {
+			loadedAgent.progress = agent.progress;
+		}
+		db.update({ '_id': loadedAgent._id}, loadedAgent, function(err,docs) {
+			if (callback) {
+				callback(err,docs[0]);
+			}
+		});
 	});
 };
 
@@ -146,20 +160,26 @@ function loadAgent(agent, callback) {
 		callback(new Error("no agent provided"));
 		return;
 	}
+
 	var queryParams = {};
-	
 	//order of the query params matters
-	if (agent.host) {
-		//queryParams.push({"host": agent.host});
-		queryParams.host=agent.host;
+	
+	if (agent._id) {
+		queryParams._id=agent._id;
+	} else {
+		if (agent.host) {
+			//queryParams.push({"host": agent.host});
+			queryParams.host=agent.host;
+		}
+		if (agent.user) {
+			queryParams.user=agent.user;
+		}
+		if (agent.port) {
+			//queryParams.push({"port": agent.port});
+			queryParams.port=parseInt(agent.port);
+		}
 	}
-	if (agent.port) {
-		//queryParams.push({"port": agent.port});
-		queryParams.port=parseInt(agent.port);
-	}
-	if (agent.user) {
-		queryParams.user=agent.user;
-	}
+	
 	logger.debug("query agents:");
 	logger.debug(queryParams);
 	db.find(queryParams, function(err, doc) {
@@ -205,73 +225,77 @@ exports.doesAgentIdExist = function(agentId, callback) {
 	  });
 }
 
-initAgent = function(agent) {
+initAgent = function(agent, serverInfo) {
 	agent_prototype = {
-		host: "",
-		port: "3141",
 		login: "",
 		password: "",
+		host: "",
 		user: "",
+		port: "3141",
 		status: "unknown",
 		type: "linux",
-		status: "INSTALLING",
 		progress: 1
 	};
-	var props = Object.getOwnPropertyNames(agent_prototype);
+	
+	var props = Object.getOwnPropertyNames(agent);
 	props.forEach(function(prop){
-		 if (Object.getOwnPropertyNames(agent).indexOf(prop) < 0) {
-			 agent[prop]=agent_prototype[prop];
-			 logger.debug('initAgent: adding property: '+agent[prop]);
-		 }
+		 agent_prototype[prop]=agent[prop];
+		 logger.debug('initAgent: adding property: '+agent[prop]);
 	});
 	
-	if (agent.login != undefined && agent.user == "") {
-		agent.user = agent.login;
+	if (agent_prototype.login != undefined && agent_prototype.user == "") {
+		agent_prototype.user = agent_prototype.login;
 	}
-	agent.password=encrypt(agent.password, serverInfo.cryptoKey);
-	logger.info("initialized agent: "+agent.user+"@"+agent.host+":"+agent.port);
-	return agent;
+	agent_prototype.password=encrypt(agent_prototype.password, serverInfo.cryptoKey);
+	logger.info("initialized agent: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
+	return agent_prototype;
 };
 
 exports.deleteAgent = function( agent, callback) {
-	logger.info("deleting agent: "+agent.host+":"+agent.port);
-	var options = {
-		    host : agent.host,
-		    port : agent.port,
-		    path : '/delete',
-		    method : 'GET',
-		    headers: {
-		        'Content-Type': 'application/json'
-		    }
-		};
-	var request = http.request(options, function(response) {
-		logger.debug("processing delete response: ");
-		
-		var output = '';
-		logger.debug(options.host + ' ' + response.statusCode);
-        response.setEncoding('utf8');
-
-        response.on('data', function (chunk) {
-            output += chunk;
-        });
-
-        response.on('end', function() {
-        	logger.info("request to delete done.");
-            //var obj = JSON.parse(output);
-        	//logger.info(obj.status);
-        	db.remove({ _id: agent._id }, {}, function (err, numRemoved) {
-        		callback(err, numRemoved);
-          	});
-        	eventEmitter.emit('agent-delete',agent);
-        });
+	loadAgent( agent, function(err, loadedAgent) {
+		if (err || !loadedAgent) {
+			callback(new Error("agent does not exist: "+agent.host+":"+agent.port));
+			return;
+		}
+		logger.info("deleting agent: "+loadedAgent.host+":"+loadedAgent.port);
+		var options = {
+			    host : loadedAgent.host,
+			    port : loadedAgent.port,
+			    path : '/delete',
+			    method : 'GET',
+			    headers: {
+			        'Content-Type': 'application/json'
+			    }
+			};
+		var request = http.request(options, function(response) {
+			logger.debug("processing delete response: ");
+			
+			var output = '';
+			logger.debug(options.host + ' ' + response.statusCode);
+	        response.setEncoding('utf8');
+	
+	        response.on('data', function (chunk) {
+	            output += chunk;
+	        });
+	
+	        response.on('end', function() {
+	        	logger.info("request to delete done.");
+	            //var obj = JSON.parse(output);
+	        	//logger.info(obj.status);
+	        	db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
+	        		callback(err, numRemoved);
+	          	});
+	        	eventEmitter.emit('agent-delete',agent);
+	        });
+		});
+		request.on('error', function(er) {
+			logger.error('no agent running on: '+agent.host,er);
+			db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
+	    		callback(err, numRemoved);
+	      	});
+		});
+		request.end();
 	});
-	request.on('error', function(er) {
-		logger.error('no agent running on: '+agent.host,er);
-		db.remove({ _id: agent._id }, {}, function (err, numRemoved) {
-    		callback(err, numRemoved);
-      	});
-	});
-	request.end();
 
 };
 
@@ -650,9 +674,9 @@ deliverAgent = function(callback) {
 };
 exports.addAgent = function(agent,serverInfo,callback) {
 	
-
-	logger.info("adding agent: "+agent);
-
+	agent=initAgent(agent,serverInfo);
+	logger.info('adding agent: '+agent.user+'@'+agent.host+':'+agent.port);
+	logger.debug(agent);
 		
 	
 	function_vars = {agent: agent};
@@ -670,7 +694,7 @@ exports.addAgent = function(agent,serverInfo,callback) {
 			return;
 		}
 		
-        agent=initAgent(agent,serverInfo);
+        
     	db.insert(agent, function (err, newDoc) {
     		if (err) {
     			logger.error(err.message);
@@ -682,7 +706,7 @@ exports.addAgent = function(agent,serverInfo,callback) {
 			}
 		    logger.debug("added agent: "+newDoc);
 		    agent=newDoc;
-			eventEmitter.emit('agent-add',agent);
+			
 
 			var agentDirName = 'knowhow-agent';
 			var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
@@ -738,6 +762,7 @@ exports.addAgent = function(agent,serverInfo,callback) {
 						if (callback) {
 							callback();
 						}
+						eventEmitter.emit('agent-add',agent);
 					
 					});
 				} catch(err) {

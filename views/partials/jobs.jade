@@ -1,8 +1,7 @@
-p Jobs
-p
 .jobs-page
-
+	
 	.jobs-nav
+		h4 Jobs 
 		div(dropdown is-open="repoSelect.isopen").btn-group
 			button.btn.btn-secondary.dropdown-toggle
 					span(id="selectRepo") 
@@ -21,6 +20,8 @@ p
 		span(ng-if="loading_jobs") ...loading...
 		abn-tree(tree-data="jobs" tree-control="job_tree" on-select="jobs_tree_handler(branch)" expand-level="2" initial-selection="weblogic" )
 	.jobs-control
+			.kh-url(ng-hide="assetURL ") Please selected a file
+			.kh-url(ng-show="assetURL ") {{assetURL}}
 			.row(ng-hide="runningJobs.length == 0" ng-repeat="agentJobs in runningJobs")
 				.col-md-9.col-lg-12(ng-repeat="job in agentJobs" ng-hide="job.progress == 0 || !job.progress")
 					.row

@@ -84,22 +84,32 @@ exports.fileContent = function (req,res) {
 
 
 exports.addFile = function(req,res) {
-	var fileName = req.query.fileName;
-	var path = req.query.path;
-	var isDirectory = req.query.isDirectory;
-	var content = req.query.content;
-	if (!content) {
-		content = {};
-	}
-	fileControl.addNewFile(path,fileName,content,isDirectory,function(err,newFile) {
-		if (err) {
-			res.send(500, err.message);
-			return;
+	try {
+		var fileName = req.query.fileName;
+		var path = req.query.path;
+		var isDirectory = req.query.isDirectory;
+		var content = decodeURIComponent(req.query.content);
+		var isEncoded= req.query.isEncoded;
+		if (isEncoded == "true" && content != undefined) {
+			content = decodeURIComponent(content);
 		}
-		logger.debug(newFile);
-		res.json(newFile);
-		
-	});
+		//logger.debug(content);
+		if (!content) {
+			content = {};
+		}
+		fileControl.addNewFile(path,fileName,content,isDirectory,function(err,newFile) {
+			if (err) {
+				res.send(500, err.message);
+				return;
+			}
+			logger.debug(newFile);
+			res.json(newFile);
+			
+		});
+	} catch (err) {
+		logger.error(err.stack);
+		res.send(500, err.message);
+	}
 };
 
 exports.deleteFile = function(req,res) {
@@ -116,9 +126,21 @@ exports.deleteFile = function(req,res) {
 
 
 exports.saveFile = function(req,res) {
-	var fileName = req.query.fileName;
-	var data = req.query.data;
-	fileControl.saveFile(fileName,data,res);
+	try {
+		var fileName = req.query.fileName;
+		
+		var isEncoded= req.query.isEncoded;
+		var data = req.query.data;
+		var check = (isEncoded == "true" && data != undefined);
+		if (isEncoded == "true" && data) {
+			data = decodeURIComponent(data);
+		}
+		fileControl.saveFile(fileName,data,res);
+	} catch (err) {
+		console.log(err.stack);
+		res.send(500, err.message);
+	}
+	
 };
 
 exports.addAgent = function (req, res) {
@@ -187,26 +209,33 @@ exports.logs = function(req,res) {
 
 exports.execute = function(req,res) {
 
-
-	
-	var agent = req.body.agent;
+	var agent = req.body.khAgent;
 	var job =  req.body.job;
-	
-	executionControl.executeJob(agent, job, function(err){
-		if (err) {
-			logger.error(job.id+" failed to start.");
-			logger.error(err.message);
-			res.json(500, {"message": err.message} );
-			return;
-		} else {
-			logger.info(job.id+" launched.");
-			res.json({ok:true});
-		}
+	console.log(require('util').inspect(job, {depth:null}));
+	agentControl.loadAgent(agent, function (agentError, loadedAgent) {
+		
+		console.log(req.body);
+		
+		executionControl.executeJob(loadedAgent, job, function(err){
+			if (err) {
+				var jobName = "undefined id";
+				if (job) {
+					jobName = job.id;
+				}
+				logger.error(jobName+" failed to start.");
+				logger.error(err.message);
+				res.json(500, {"message": err.message} );
+				return;
+			} else {
+				logger.info(job.id+" launched.");
+				res.json({ok:true});
+			}
+		});
 	});
 };
 
 exports.cancelJob = function(req,res) {
-	var agent = req.body.agent;
+	var agent = req.body.khAgent;
 	var job =  req.body.job;
 	
 	executionControl.cancelJobOnAgent(agent, job, function(err){

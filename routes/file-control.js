@@ -66,6 +66,7 @@ saveFile = function(file, data, res) {
 
 	fs.writeFile(file, data, function(err) {
 	    if(err) {
+	    	logger.error(err.stack);
 	        res.json({
 	        	message: err.msg
 	        });
@@ -103,6 +104,76 @@ exports.deleteFile = function(filename, callback) {
 		});
 	}
 }
+
+exports.addNewFile = function(addPath, fileName, content, isDirectory, callback) {
+	
+	
+	//create the directory if it does not exist
+	var isNewDirectory = (isDirectory === 'true' || isDirectory === true );
+	var newPath = addPath;
+	var absolutePath = filepath.resolve(addPath+filepath.sep+fileName);
+	var fileType = 'file'
+	if (isNewDirectory == true) {
+		newPath = absolutePath;
+		fileType='folder';
+	}
+	var fileInfo = {
+        path: absolutePath,
+        label: filepath.basename(absolutePath),
+        ext:  filepath.extname(absolutePath),
+        type: fileType
+    };
+	//logger.debug('isNewDirectory='+isNewDirectory+' path='+newPath);
+	fs.stat(newPath, function (err, stat) {
+	   //logger.debug(stat);
+       if (err) {
+         logger.error(err);
+          // file does not exist
+          if (err.errno == 2 || err.errno == 34) {
+        		logger.info("download dir does not exist - creating dir: "+newPath);
+	        	mkdirp.sync(newPath, function (err) {
+            	  if (err) {
+        		    logger.error(err);
+        		     callback(new Error("unable to create: "+newPath),fileInfo);
+        		     return;
+        		  } else {
+        		    logger.info('Directory ' + newPath + ' created.');
+        		  }
+	            
+	            });
+          } else {
+          	logger.error("unable to create dir: "+newPath);
+          	callback(new Error("unable to create dir: "+newPath),fileInfo);
+          	return;
+          }
+        } else if (isNewDirectory == true) {
+        	logger.error("unable to create dir: "+newPath);
+          	callback(new Error("unable to create dir: "+newPath),fileInfo);
+          	return;
+        }
+        if (isNewDirectory != true && fileName != undefined) {
+		
+		
+		if (fs.existsSync(absolutePath)) {
+		    logger.error(absolutePath+" already exists");
+		    callback(new Error(absolutePath+" already exists"),fileInfo);
+		    return;
+		} else {
+			logger.info("creating file: "+absolutePath);
+			try {
+				fs.writeFileSync(absolutePath,content);
+			} catch (err) {
+				callback(err,fileInfo);
+				return;
+			}
+			
+		}
+	}
+	
+	callback(undefined, fileInfo);	
+	});
+
+};
 
 exports.addFile = function(addPath, fileName, isDirectory, callback) {
 	

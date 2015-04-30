@@ -34,6 +34,8 @@
 		.workflows-tree
 			abn-tree(tree-data="workflows" tree-control="workflow_tree" on-select="tree_handler(branch)" expand-level="2" initial-selection="weblogic" )
 	.workflows-control
+		.kh-url(ng-hide="environmentURL") Please an environment
+		.kh-url(ng-show="environmentURL") {{environmentURL}}
 		.row(ng-show="selectedEnv || selectedEnvBranch")
 			.col-md-12.col-lg-12
 				tabset
@@ -91,6 +93,7 @@
 							.col-md-12.col-lg-12		
 								.env-textarea#env_editor
 		
+		.kh-url(ng-show="workflowURL") {{workflowURL}}
 		.row
 			.col-md-6.col-lg-6.btn-group
 				.pull-left

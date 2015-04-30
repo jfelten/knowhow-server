@@ -64,6 +64,19 @@ var loadRepository = function(repoId, callback) {
 
 exports.loadRepository = loadRepository;
 
+var loadRepositoryFromName = function(repoName, callback) {
+	db.findOne({name: repoName}, function(err, doc) {
+		if (err) {
+			callback(err);
+			return;
+		} else {
+			callback(undefined, doc);
+		}
+	});
+};
+
+exports.loadRepositoryFromName = loadRepositoryFromName;
+
 var importFromServer = function(newRepo, callback) {
 	
 	
@@ -410,6 +423,27 @@ var importFromGIT = function(newRepo, callback) {
 
 exports.api = {
 	"routes": [
+		{
+			APICall: "/repo/getRepoFromName",
+			callback: function(req, res) {
+						var repoName = req.query.repoName;
+						loadRepositoryFromName(repoName,function(err, repo) {
+								if (err) {
+									logger.error(err.message);
+									res.send(500, err);
+								} else {
+										info = {
+									        path: repo.path,
+									        label: repo.name,
+									        type: "repo",
+									        _id: repo._id
+									    };
+									res.json(info);
+								}
+						});
+					},
+			httpType: "GET"
+		},
 		{
 			APICall: "/repo/listRepositories",
 			callback: function(req, res) {

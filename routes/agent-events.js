@@ -330,7 +330,7 @@ function AgentEventHandler(io) {
 		
 		try {
 			logger.info("broadcasting execution error.");
-			io.emit('execution-complete', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+			io.emit('execution-error', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
 								, command);
 		} catch(err) {
 			logger.error("unable to broadcast execution error event");

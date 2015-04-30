@@ -245,8 +245,15 @@ exports.cancelJobOnAgent = cancelJobOnAgent;
 
 exports.executeJob = function(agent,job,callback) {
 	
-	if (agent.status != 'READY') {
-		callback(new Error('agent state is not \'READY\''));
+	if (!agent || agent.status != 'READY') {
+		var agentName = undefined;
+		if (agent) {
+			agentName = agent.user+'@'+agent.host+':'+agent.port;
+		}
+		callback(new Error('invalid agent or agent state is not \'READY\' agent:'+agentName));
+		return;
+	} else if (!job) {
+		callback(new Error('no job passed'));
 		return;
 	}
 	var d = domain.create();
