@@ -220,6 +220,10 @@ var saveFile =  function(fileName,fileContent,callback) {
 	  
 };
 
+var getFileRepoURL = function(repo, path) {
+	return repo.label+'://'+path.replace(repo.path,'');
+}
+
 
 var openNewFileModal = function (selectedNode, repo, tree, templateURL) {
 			console.log("getting file form");
@@ -283,6 +287,8 @@ repo_module.controller('newFileModalController', function($scope) {
   };
 
 });	
+
+
 	
 
 repo_module.factory("qs_repo", ["$http","$modal", function ($http,$modal,qs_repo) {
@@ -295,7 +301,8 @@ repo_module.factory("qs_repo", ["$http","$modal", function ($http,$modal,qs_repo
    	  	addFile: addFile.bind({$http: $http}),
    	  	deleteFile: deleteFile.bind({$http: $http, $modal: $modal}),
    	  	openNewFileModal: openNewFileModal.bind({$modal: $modal}),
-   	  	openDeleteFileModal: openNewFileModal.bind({$modal: $modal})
+   	  	openDeleteFileModal: openNewFileModal.bind({$modal: $modal}),
+   	  	getFileRepoURL: getFileRepoURL
    	  }
 
    }]);

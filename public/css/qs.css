@@ -355,6 +355,10 @@ p {
   padding-top: 15px;
   padding-bottom: 0px;
 }
+.kh-url {
+  color: #428bca;
+  font-size: 14px;
+}
 .qs-navbar {
   float: bottom;
 }

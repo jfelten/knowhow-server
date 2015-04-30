@@ -267,7 +267,8 @@ var myModule = angular.module('myApp.controllers', []).
   		      });
 	      		    		
 	      }		    	
-	    	  
+	      $scope.assetURL = qs_repo.getFileRepoURL($scope.selectedRepo,branch.path);
+	      console.log("url="+ $scope.assetURL);  
 
 	     
 	    	  
@@ -342,6 +343,7 @@ var myModule = angular.module('myApp.controllers', []).
 		  $scope.repoSelect.isopen = !$scope.repoSelect.isopen;
 		  var selectRepo = document.getElementById('selectRepo');
 		  selectRepo.textContent=selectedRepo.label;
+		  $scope.selectedRepo=selectedRepo;
 	  };
 	  
 	  var navigating = false;
@@ -351,7 +353,7 @@ var myModule = angular.module('myApp.controllers', []).
 
 
 		    var data = {
-		    	agent: agent,
+		    	khAgent: agent,
 		    	job: job
 		    };
 		    $http({
@@ -384,7 +386,7 @@ var myModule = angular.module('myApp.controllers', []).
 		        return;
 		    }
 		    var data = {
-		    	agent: $scope.selectedAgent,
+		    	khAgent: $scope.selectedAgent,
 		    	job: job
 		    };
 		    $http({
@@ -632,8 +634,9 @@ var myModule = angular.module('myApp.controllers', []).
 	      $scope.selectedFile = branch; 
 	      $scope.message = undefined;
 	      $scope.env_message = undefined;
+	      console.log("url="+ $scope.assetURL);
 	      if (branch.type == 'file') {
-	    	  qs_repo.loadFile($scope.selectedRepo, branch.path, function(err,data) {
+	    	  qs_repo.loadFile($scope.selectedRepo.label, branch.path, function(err,data) {
 	    	    //console.log("data="+data);
 	    	  	if (branch.ext=='.json') {
 	    	  		editor.setText(data);
@@ -642,6 +645,7 @@ var myModule = angular.module('myApp.controllers', []).
   		    		editor.setMode('text');
   		    		editor.setText(data);
   		    	}
+  		    	$scope.workflowURL=qs_repo.getFileRepoURL($scope.selectedRepo,branch.path);
   		      });
 	      		    		
 	      }		    	
@@ -660,7 +664,7 @@ var myModule = angular.module('myApp.controllers', []).
 	      $scope.env_message = undefined;
 	      $scope.selectedEnvBranch = branch;
 	      if (branch.type == 'file') {
-	    	  qs_repo.loadFile($scope.selectedRepo, branch.path, function(err,data) {
+	    	  qs_repo.loadFile($scope.selectedRepo.label, branch.path, function(err,data) {
 	    	    //console.log("data="+data);
 	    	  	if (branch.label=='environment.json') {
 	    	  		$scope.env_tabs[0].active = true
@@ -680,6 +684,7 @@ var myModule = angular.module('myApp.controllers', []).
   		    		$scope.env_tabs[1].active = true
   		    	}
   		      });
+  		      $scope.environmentURL=qs_repo.getFileRepoURL($scope.selectedRepo,branch.path);
 	      		    		
 	      }		    	  
 	    	  
@@ -795,7 +800,7 @@ var myModule = angular.module('myApp.controllers', []).
 	  $scope.cancel = function(agent, job) {
 		  
 		    var data = {
-		    	agent: agent,
+		    	khAgent: agent,
 		    	job: job
 		    };
 		    $http({
