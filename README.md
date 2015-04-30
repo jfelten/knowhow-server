@@ -7,6 +7,8 @@ This package is the server only.  For the complete package please use the [knowh
 
 NOTE: This currently only works on Unix based systems.  Please create an issue if there is interest in running on windows.
 
+### [Live knowhow-server Demo >>](http://knowhowjs.com:3001)
+
 # Installation
 
     npm install knowhow-server
