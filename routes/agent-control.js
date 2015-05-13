@@ -18,6 +18,9 @@ var ss = require('socket.io-stream');
 var fs = require('fs');
 var executionControl = require('./execution-control');
 var KnowhowShell = require('knowhow-shell');
+//var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
+//var ttyPool = new require('../../knowhow-shell/tty-pool')(2,10);
+var ttyPool = new require('knowhow-shell/tty-pool')(2,10);
 var KHShell = new KnowhowShell(eventEmitter)
 
 //deliver the agent files
@@ -81,8 +84,10 @@ updateAgent = function(agent, callback) {
 		if (agent.progress) {
 			loadedAgent.progress = agent.progress;
 		}
-		db.update({ '_id': loadedAgent._id}, loadedAgent, function(err,docs) {
-			if (callback) {
+		db.update({ '_id': loadedAgent._id}, agent, function(err,docs) {
+			if(err) {
+				callback(err);
+			} else if (callback) {
 				callback(err,docs[0]);
 			}
 		});
@@ -119,7 +124,9 @@ heartbeat = function(agent, callback) {
         res.on('end', function() {
         	//logger.info("done.");
             //obj = JSON.parse(output);
-        	//logger.debug("agent status check: "+obj.status);        
+        	//logger.debug("agent status check: "+obj.status);
+        	agent.progress=0;
+        	agent.message='';        
         	callback(undefined, agent);
             
         });
@@ -180,8 +187,8 @@ function loadAgent(agent, callback) {
 		}
 	}
 	
-	logger.debug("query agents:");
-	logger.debug(queryParams);
+	//logger.debug("query agents:");
+	//logger.debug(queryParams);
 	db.find(queryParams, function(err, doc) {
 		logger.debug(doc);
 		if (err) {
@@ -254,6 +261,8 @@ initAgent = function(agent, serverInfo) {
 exports.deleteAgent = function( agent, callback) {
 	loadAgent( agent, function(err, loadedAgent) {
 		if (err || !loadedAgent) {
+			//agent.message = 'agent does not exist';
+			//eventEmitter.emit('agent-error',agent);
 			callback(new Error("agent does not exist: "+agent.host+":"+agent.port));
 			return;
 		}
@@ -282,16 +291,19 @@ exports.deleteAgent = function( agent, callback) {
 	        	logger.info("request to delete done.");
 	            //var obj = JSON.parse(output);
 	        	//logger.info(obj.status);
+	        	
 	        	db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
 	        		callback(err, numRemoved);
+	        		eventEmitter.emit('agent-delete',agent);
 	          	});
-	        	eventEmitter.emit('agent-delete',agent);
+	        	
 	        });
 		});
 		request.on('error', function(er) {
 			logger.error('no agent running on: '+agent.host,er);
 			db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
 	    		callback(err, numRemoved);
+	    		eventEmitter.emit('agent-delete',loadedAgent);
 	      	});
 		});
 		request.end();
@@ -308,7 +320,11 @@ install = function(main_callback) {
 			}
 			try {
 				job = JSON.parse(content);
-				job.script.env.USER=agent.login;
+				if (agent.login) {
+					job.script.env.USER=agent.login;
+				} else {
+					job.script.env.USER=agent.user;
+				}
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
 				job.script.env.LOGIN=agent.login;
@@ -318,7 +334,7 @@ install = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			KHShell.executeJob(job,function(err) {
+			KHShell.executeJobWithPool(ttyPool,job,function(err) {
 				if (err) {
 					main_callback(err);
 				} else {
@@ -339,7 +355,11 @@ startAgent = function(main_callback) {
 			}
 			try {
 				job = JSON.parse(content);
-				job.script.env.USER=agent.login;
+				if (agent.login) {
+					job.script.env.USER=agent.login;
+				} else {
+					job.script.env.USER=agent.user;
+				}
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
 				job.script.env.LOGIN=agent.login;
@@ -349,7 +369,7 @@ startAgent = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			KHShell.executeJob(job,function(err) {
+			KHShell.executeJobWithPool(ttyPool,job,function(err) {
 				if (err) {
 					main_callback(err);
 				} else {
@@ -593,12 +613,12 @@ waitForAgentStartUp = function(callback) {
 	var agent = this.agent;
     agent.message = 'starting agent';
     eventEmitter.emit('agent-update', agent);
-    //timeout after 20 secs
+    //timeout after 40 secs
     var timeout = setTimeout(function() {
     	clearInterval(heartbeatCheck);
     	agent.message=("agent failed to start");
     	callback(new Error("agent failed to start"));
-    }, 20000);
+    }, 40000);
     
     
     //wait until a heartbeat is received
@@ -692,89 +712,88 @@ exports.addAgent = function(agent,serverInfo,callback) {
 				callback(err);
 			}
 			return;
-		}
+		} else {
 		
         
-    	db.insert(agent, function (err, newDoc) {
-    		if (err) {
-    			logger.error(err.message);
-    			logger.error(err.stack);
-	    		if (callback) {
-					callback(err);
+	    	db.insert(agent, function (err, newDoc) {
+	    		if (err) {
+	    			logger.error(err.message);
+	    			logger.error(err.stack);
+		    		if (callback) {
+						callback(err);
+					}
+					return;
 				}
-				return;
-			}
-		    logger.debug("added agent: "+newDoc);
-		    agent=newDoc;
-			
-
-			var agentDirName = 'knowhow-agent';
-			var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
-			var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
-			install_commands=['rm -rf '+agentExtractedDir,
-							'mkdir -p '+agentExtractedDir,
-			  	          	'tar xzf '+agentArchive+' -C '+agentExtractedDir,
-			  	            'tar xzf '+os.tmpdir()+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
-			  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production --workingDir='+agentExtractedDir+' > /dev/null 2>&1&'
-			  	];
-
-			function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};
-			var exec = [
-			            //packAgent.bind(function_vars), 
-			            //deliverAgent.bind(function_vars), 
-			            install.bind(function_vars),
-			            startAgent.bind(function_vars),
-			            waitForAgentStartUp.bind(function_vars),
-			            registerServer.bind(function_vars),
-			            updateAgentInfoOnAgent.bind(function_vars),
-			            getStatus.bind(function_vars)];
-			            
-			heartbeat(agent, function(err) {
-				if (!err) {
-					logger.info("Agent already exists");
-					exec = [
-			            waitForAgentStartUp.bind(function_vars),
-			            registerServer.bind(function_vars),
-			            updateAgentInfoOnAgent.bind(function_vars),
-			            getStatus.bind(function_vars)];
-				}
-				try {
+			    logger.debug("added agent: "+newDoc);
+			    agent=newDoc;
+				
+	
+				var agentDirName = 'knowhow-agent';
+				var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
+				var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
+				install_commands=['rm -rf '+agentExtractedDir,
+								'mkdir -p '+agentExtractedDir,
+				  	          	'tar xzf '+agentArchive+' -C '+agentExtractedDir,
+				  	            'tar xzf '+os.tmpdir()+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
+				  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production --workingDir='+agentExtractedDir+' > /dev/null 2>&1&'
+				  	];
+	
+				function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};
+				var exec = [
+				            //packAgent.bind(function_vars), 
+				            //deliverAgent.bind(function_vars), 
+				            install.bind(function_vars),
+				            startAgent.bind(function_vars),
+				            waitForAgentStartUp.bind(function_vars),
+				            registerServer.bind(function_vars),
+				            updateAgentInfoOnAgent.bind(function_vars),
+				            getStatus.bind(function_vars)];
+				            
+				heartbeat(agent, function(err) {
+					if (!err) {
+						logger.info("Agent already exists");
+						exec = [
+				            waitForAgentStartUp.bind(function_vars),
+				            registerServer.bind(function_vars),
+				            updateAgentInfoOnAgent.bind(function_vars),
+				            getStatus.bind(function_vars)];
+					}
 					async.series(exec,function(err) {
 						if (err) {
-							logger.error('agent error' + err);
+							logger.error('agent error - ' + err);
+							logger.error(err.stack);
 							eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
 							if (callback) {
+								console.log(err.stack);
 								callback(err);
 							}
 							return;
-						}
-						//set the progress back to 0
-						db.find({_id: agent._id}, function(err, docs) {
-							if (docs.length > 0) {
-								agent = docs[0];
-								agent.status='READY';
-								agent.message=undefined
-								agent.progress =0;
-								eventEmitter.emit('agent-update',agent);
+						} else {
+							//set the progress back to 0
+							db.find({_id: agent._id}, function(err, docs) {
+								if (docs.length > 0) {
+									agent = docs[0];
+									agent.status='READY';
+									agent.message=undefined
+									agent.progress =0;
+									eventEmitter.emit('agent-update',agent);
+								}
+								
+							  });
+							if (callback) {
+								callback(undefined, agent);
 							}
-							
-						  });
-						if (callback) {
-							callback();
+							console.log("emitting agent-add event for agent: "+agent._id);
+							eventEmitter.emit('agent-add',agent);
 						}
-						eventEmitter.emit('agent-add',agent);
 					
 					});
-				} catch(err) {
-					if (callback) {
-						callback(err);
-					}
-					logger.error("agent install failed for: "+agent.host+":"+agent.port);
-				}
-				
-			});	
-				
-		});
+
+					
+				});	
+					
+			});
+		}
 		
 	});
 };

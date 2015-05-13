@@ -220,6 +220,7 @@ var agentCheck = function() {
 					}
 					connectedAgent.status='READY'
 					connectedAgent.message='';
+					connectedAgent.progress=0;
 					agentControl.updateAgent(connectedAgent, function() {
 						agentControl.eventEmitter.emit('agent-update',connectedAgent);
 					});

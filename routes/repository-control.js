@@ -431,7 +431,9 @@ exports.api = {
 								if (err) {
 									logger.error(err.message);
 									res.send(500, err);
-								} else {
+								} else if (!repo) {
+									res.send(500, new Error("invalid repo: "+repoName));
+								}else {
 										info = {
 									        path: repo.path,
 									        label: repo.name,
