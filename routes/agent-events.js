@@ -44,9 +44,9 @@ function listenForEvents(agent, socket) {
 		});
 		socket.on('job-error', function(job){
 			if (job) {
-				logger.info('Stopping Job: '+job.id+ ' due to error.');
+				logger.info('Stopping Job: '+job.id+ ' due to error on agent('+agent._id+') '+agent.user+'@'+agent.host+':'+agent.port);
 				//agentSockets[agent._id].eventSocket.emit('job-cancel',job);
-				executionControl.cancelJob(agent._id, job);
+				executionControl.cancelJob(agent._id, job.id);
 				executionControl.eventEmitter.emit('job-error',agent, job);
 			} else {
 				logger.error("empty job error message received.");
@@ -271,7 +271,7 @@ function AgentEventHandler(io) {
 	executionControl.eventEmitter.on('job-cancel', function(agent, job) {
 		
 		try {
-			logger.info(job.id+' cancelled.');
+			logger.info(job.id+' cancelled on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
 			eventAgent = {};
 			if (agent) {
 				eventAgent = {_id: agent._id, host: agent.host, port: agent.port, user: agent.user};
@@ -288,7 +288,7 @@ function AgentEventHandler(io) {
 	executionControl.eventEmitter.on('job-complete', function(agent, job) {
 		
 		try {
-			logger.info("broadcasting "+job.id+' complete.');
+			logger.info("broadcasting "+job.id+' complete on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
 			io.emit('job-complete', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
 								, {id: job.id, status: job.status, progress: job.progress});
 		} catch(err) {
@@ -297,7 +297,7 @@ function AgentEventHandler(io) {
 	});
 	executionControl.eventEmitter.on('job-error', function(agent, job) {
 		if (job) {
-			logger.info("broadcasting "+job.id+' error.');
+			logger.info("broadcasting "+job.id+' error on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
 			try {
 				io.emit('job-error', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
 									, {id: job.id, status: job.status, progress: job.progress});
@@ -310,7 +310,7 @@ function AgentEventHandler(io) {
 	});
 	executionControl.eventEmitter.on('cancel-job-on-agent', function(agent, job) {
 		if (job && agent) {
-			logger.info("sending cancel for "+job.id+' on '+agent.host);
+			logger.info("sending cancel for "+job.id+' on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
 			agentSockets[agent._id].eventSocket.emit('job-cancel',job);
 		 } else {
 		 	logger.error("invalid job error event");
@@ -329,7 +329,7 @@ function AgentEventHandler(io) {
 	executionControl.eventEmitter.on('execution-error', function(agent, command) {
 		
 		try {
-			logger.info("broadcasting execution error.");
+			logger.info("broadcasting execution error for agent");
 			io.emit('execution-error', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
 								, command);
 		} catch(err) {

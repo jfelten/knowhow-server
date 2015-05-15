@@ -2,7 +2,7 @@
   "id": "starts KH Agent",
   "working_dir": "/tmp/KHAgent",
   "options": {
-    "timeoutms": 30000
+    "timeoutms": 40000
   },
   "files": [],
   "shell": {
