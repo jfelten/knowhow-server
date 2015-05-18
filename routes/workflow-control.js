@@ -565,7 +565,7 @@ var lookupEnvironmentForAgent = function(agent, callback) {
 	if (runningTasks && agent) {
 		for (environment in runningTasks) {
 			for (envAgent in runningTasks[environment.id]) {
-				if(envAgent && envAgent.id = agent._id) {
+				if(envAgent && envAgent.id == agent._id) {
 					callback(environment);
 				}
 			}

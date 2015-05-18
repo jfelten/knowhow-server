@@ -5,6 +5,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var async = require('async');
 
+
 //var express = require('express'),
 bodyParser = require('body-parser'),
 methodOverride = require('method-override'),
@@ -155,10 +156,10 @@ app.get('*', routes.index);
 //	if (err) {
 //		process.exit();
 //	}
-	http.listen(port, function(){
-	  logger.info('listening on *:'+port);
+//	http.listen(port, function(){
+//	  logger.info('listening on *:'+port);
 	  
-	});
+//	});
 
 //});
 
@@ -236,9 +237,39 @@ var agentCheck = function() {
 		});
 	});
 };
-agentCheck();
-setInterval(agentCheck,60000);
+//agentCheck();
+//setInterval(agentCheck,60000);
 
+var start = function(port,callback) {
+	http.listen(port, function(err){
+		if (err) {
+			if (callback) {
+				callback(err);
+			}
+		} else {
+		  logger.info('listening on *:'+port);
+		  if (callback) {
+		  	callback();
+		  }
+		}
+	});
+}
 
+/**
+ * factory method
+ * @param port to listen on
+ */
+var KHServer = function(port, callback) {
+	
+	var self = this;
+	
+	start(port,callback);
+	agentCheck();
+	setInterval(agentCheck,60000);
+	
+	return self;
+};
+
+module.exports = KHServer;
 
 

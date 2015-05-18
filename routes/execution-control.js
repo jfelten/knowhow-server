@@ -27,6 +27,7 @@ setFileSocket = function(agent, socket) {
 		if(!currentJobs[agentId]) {
 			currentJobs[agentId] = {};
 			currentJobs[agentId].fileSocket=socket;
+			currentJobs[agentId].agent = agent;
 		} 
 	}
 
@@ -161,6 +162,7 @@ cancelJob = function(agentId, jobId, callback ) {
 	    }*/
 		clearTimeout(currentJobs[agentId][jobId].timeout);
 	    clearInterval(currentJobs[agentId][jobId].fileCheck);
+	    console.log(currentJobs[agentId]);
 	    eventEmitter.emit('job-cancel',currentJobs[agentId].agent, currentJobs[agentId][jobId]);
 	    delete currentJobs[agentId][jobId];
 	}
@@ -331,11 +333,12 @@ exports.executeJob = function(agent,job,callback) {
 					 
 			
 				    res.on('data', function(d) {
-				    	logger.debug('result:\n');
-				        process.stdout.write(d+'\n');
+				    	//logger.debug('result:\n');
+				        //process.stdout.write(d+'\n');
 				        if (res.statusCode != 200) {
 						 	logger.error("Unable to execute Job. Response code:"+res.statusCode);
-						 	callback(new Error(JSON.parse(d).message));
+						 	
+						 	callback(new Error(d.message));
 						 	return;
 						 }
 				        logger.debug('\n\nJob request sent. Listening for events and uploading files');
@@ -543,7 +546,7 @@ function setJobTimer(agent, job) {
 					        currentJobs[agentId][jobId].error=true;
 					       	clearTimeout(currentJobs[agentId][jobId].timeout);
 			    			clearInterval(currentJobs[agentId][jobId].fileCheck);
-			    			eventEmitter.emit("job-error",job);
+			    			eventEmitter.emit("job-error",agent,job);
 			    			cancelJob(agentId, jobId);
 			    		}	
 		    		}
