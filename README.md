@@ -1,4 +1,4 @@
-knowhow-server
+knowhow-server [![Build Status](https://travis-ci.org/jfelten/knowhow-server.svg)](https://travis-ci.org/jfelten/knowhow-server)
 ==============
 
 This is the control application for the knowhow framework.  It acts as a manager for knowhow agents, repositories, jobs, and workflows.  Repositories, jobs and workflows may be created, edited and executed though the UI.  Knowhow-server uses socket.io and simple http calls to control agent execution and lifecyle across multiple servers.
