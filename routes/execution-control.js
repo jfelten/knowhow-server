@@ -179,7 +179,7 @@ completeJob = function(agent,job) {
 		
 		var jobId = job.id;
 		var agentId = agent._id;
-		logger.info("completing "+jobId+" on "+agentId);
+		logger.info("completing "+jobId+" on "+agent.user+"@"+agent.host+":"+agent.port+"("+agentId+")");
 		if (currentJobs[agentId][jobId]) {
 			logger.debug("closing read streams.");
 			if (currentJobs[agentId][jobId].fileProgress && currentJobs[agentId][jobId].fileProgress.length >0 ) {

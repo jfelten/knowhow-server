@@ -37,7 +37,7 @@ function listenForEvents(agent, socket) {
 		});
 		socket.on('job-complete', function(job){
 			if (job) {
-				logger.info('Completed Job: '+job.id+" on "+agent.host+":"+agent.port);
+				logger.info('Completed Job: '+job.id+" on "+agent.host+":"+agent.port+"("+agent._id+")");
 				executionControl.completeJob(agent, job);
 			}
 			//executionControl.eventEmitter.emit('job-complete',agent, job);
@@ -67,9 +67,11 @@ function listenForAgentEvents(agent, callback) {
 	}
 
 	agentSockets[agent._id].eventSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/agent-events');
+	agentSockets[agent._id].eventSocket.open();
 	listenForEvents(agent, agentSockets[agent._id].eventSocket);
-	logger.info("connecting to: "+agent.host+":"+agent.port+'/agent-events' ); 
-    agentSockets[agent._id].eventSocket.on('connect', function() { 
+	logger.info("connecting to http://: "+agent.host+":"+agent.port+'/agent-events' ); 
+    agentSockets[agent._id].eventSocket.on('connect', function() {
+    	logger.info("connected");
     	 agentControl.heartbeat(agent, function (err, connectedAgent) {
 			if (err) {
 				connectedAgent.status='ERROR'
@@ -87,7 +89,8 @@ function listenForAgentEvents(agent, callback) {
     	});
     	 
     }).on('error', function(err) {
-    	//callback(err, agent);
+    	logger.error("event connection error");
+    	logger.error(err.stack);
     }).on('reconnect', function() {
     	logger.info("reconnected to : "+agent.host+":"+agent.port);
     	agentControl.heartbeat(agent, function (err, connectedAgent) {
@@ -105,6 +108,9 @@ function listenForAgentEvents(agent, callback) {
 			});
     	});
     }).on('disconnect', function() {
+    	agentSockets[agent._id].eventSocket.removeAllListeners();
+    	agentSockets[agent._id].eventSocket.close();
+    	delete agentSockets[agent._id].eventSocket;
     	agentControl.heartbeat(agent, function (err, connectedAgent) {
 			if (err) {
 				connectedAgent.status='ERROR'
@@ -136,6 +142,9 @@ function openFileSocket(agent, callback) {
 	
 	agentSockets[agent._id].fileSocket.on('disconnect' ,function () {
 		logger.info("file socket disconnected");
+		agentSockets[agent._id].fileSocket.removeAllListeners();
+		agentSockets[agent._id].fileSocket.close();
+		delete agentSockets[agent._id].fileSocket;
 	});
 	
 	agentSockets[agent._id].fileSocket.on('reconnect' ,function () {

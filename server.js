@@ -38,6 +38,7 @@ app.use(stylus.middleware(
 		));
 
 var agentEventHandler = new AgentEventHandler(io);
+exports.agentEventHandler = agentEventHandler;
 var dl = require('delivery');
 fs = require('fs');
 
@@ -108,6 +109,7 @@ app.get('/api/deleteFile', api.deleteFile);
 //agent routes
 app.post('/api/addAgent', api.addAgent);
 app.post('/api/deleteAgent', api.deleteAgent);
+app.post('/api/getAgentInfo', api.getAgentInfo);
 app.post('/api/logs',api.logs);
 app.post('/api/agentEvent', api.agentEvent);
 app.get('/api/agentEvent', api.agentEvent);

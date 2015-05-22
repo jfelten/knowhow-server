@@ -51,7 +51,7 @@
         "command": "if [ -d \"knowhow-agent\" ]; then LOCAL_INSTALL=\"true\"; fi"
       },
       {
-        "command": "if [ [ \"${GLOBAL_INSTALL}\" -eq \"false\" ] && [ -n \"${LOCAL_INSTALL}\" ] ]; then npm install knowhow-agent; fi"
+        "command": "if [ \"${GLOBAL_INSTALL}\" == \"false\" -a -n \"${LOCAL_INSTALL}\" ]; then npm install knowhow-agent; fi"
       }
     ]
   }

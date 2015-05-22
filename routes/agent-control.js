@@ -327,6 +327,9 @@ install = function(main_callback) {
 				}
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
+				if (agent.ip) {
+					job.script.env.HOST=agent.ip;
+				}
 				job.script.env.LOGIN=agent.login;
 				job.script.env.PORT=agent.port;
 				job.script.env.AGENT_ID=agent._id;
@@ -362,6 +365,9 @@ startAgent = function(main_callback) {
 				}
 				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
+				if (agent.ip) {
+					job.script.env.HOST=agent.ip;
+				}
 				job.script.env.LOGIN=agent.login;
 				job.script.env.PORT=agent.port;
 				job.script.env.AGENT_ID=agent._id;
@@ -438,8 +444,11 @@ getStatus = function(callback) {
 
 registerServer = function(callback) {
 	var agent = this.agent;
-	var serverInfo = this.serverInfo
-	logger.info('registering this server to listen for events on: '+agent.host+':'+agent.port);
+	var serverInfo = this.serverInfo;
+	if (!serverInfo) {
+		serverInfo = {};
+	}
+	logger.info('registering this server'+serverInfo.name+':'+serverInfo.port+' to listen for events on: '+agent.host+':'+agent.port);
 	// prepare the header
 	var headers = {
 	    'Content-Type' : 'application/json',
@@ -630,7 +639,7 @@ waitForAgentStartUp = function(callback) {
     			callback();
     		}
     	});
-    }, 1000);
+    }, 500);
 };
 
 deliverAgent = function(callback) {
@@ -692,9 +701,11 @@ deliverAgent = function(callback) {
 	});
 
 };
-exports.addAgent = function(agent,serverInfo,callback) {
+exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
+
 	
 	agent=initAgent(agent,serverInfo);
+	agent.callback = callback;
 	logger.info('adding agent: '+agent.user+'@'+agent.host+':'+agent.port);
 	logger.debug(agent);
 		
@@ -708,8 +719,10 @@ exports.addAgent = function(agent,serverInfo,callback) {
 			logger.error('agent error' + err);
 			agent.message = ""+err;
 			eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
-			if (callback) {
+			if (agent.callback) {
+				delete agent.callback;
 				callback(err);
+				
 			}
 			return;
 		} else {
@@ -719,8 +732,10 @@ exports.addAgent = function(agent,serverInfo,callback) {
 	    		if (err) {
 	    			logger.error(err.message);
 	    			logger.error(err.stack);
-		    		if (callback) {
+		    		if (agent.callback) {
+		    			delete agent.callback;
 						callback(err);
+						
 					}
 					return;
 				}
@@ -763,9 +778,11 @@ exports.addAgent = function(agent,serverInfo,callback) {
 							logger.error('agent error - ' + err);
 							logger.error(err.stack);
 							eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
-							if (callback) {
+							if (agent.callback) {
 								console.log(err.stack);
+								delete agent.callback;
 								callback(err);
+								
 							}
 							return;
 						} else {
@@ -780,11 +797,46 @@ exports.addAgent = function(agent,serverInfo,callback) {
 								}
 								
 							  });
-							if (callback) {
-								callback(undefined, agent);
-							}
-							console.log("emitting agent-add event for agent: "+agent._id);
-							eventEmitter.emit('agent-add',agent);
+							if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].eventSocket) {
+								agentEventHandler.listenForAgentEvents(agent, function(err, eventAgent) {
+									if(err) {
+										registeredAgent.status='ERROR'
+										registeredAgent.message='event socket error';
+										agentControl.updateAgent(eventAgent, function() {
+											agentControl.eventEmitter.emit('agent-update',eventAgent);
+										});
+										
+										logger.error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
+										callback(new Error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port));
+										return;
+									}
+									logger.info("receiving events from: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
+									if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].fileSocket) {
+										agentEventHandler.openFileSocket(agent, function(err, registeredAgent) {
+											if(err) {
+												registeredAgent.status='ERROR'
+												registeredAgent.message='file socket error';
+												agentControl.updateAgent(registeredAgent, function() {
+													agentControl.eventEmitter.emit('agent-update',registeredAgent);
+												});
+												logger.error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
+												callback(new Error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port));
+												return;
+											}
+											logger.info("can now upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
+											if (agent.callback) {
+												delete agent.callback;
+												callback(undefined, agent);
+												
+											}
+											console.log("emitting agent-add event for agent: "+agent._id);
+											eventEmitter.emit('agent-add',agent);
+										});
+									}
+								});
+							} 
+							
+							
 						}
 					
 					});

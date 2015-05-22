@@ -150,7 +150,7 @@ exports.addAgent = function (req, res) {
   }
   var agent = req.body;
   try {
-	  agentControl.addAgent(agent, getServerInfo(), function(err, newAgent) {
+	  agentControl.addAgent(agent, server.agentEventHandler, getServerInfo(), function(err, newAgent) {
 	  	if (err) {
 	  		res.send(500, {"message": err.message});
 	  		return;
@@ -199,6 +199,24 @@ exports.deleteAgent = function (req, res) {
 	  //agentControl.listAgents(req,res);
 
 	};
+
+/**
+ *	returns agent Info based on user@host:port
+ */	
+exports.getAgentInfo = function(req,res) {
+
+	var agent = req.body;
+	console.log(agent);
+	agentControl.loadAgent(agent,function (err, loadedAgent) {
+		if (err) {
+			res.send(500, err.message);
+		} else {
+			console.log(loadedAgent);
+			res.json(loadedAgent);
+		}
+	});
+
+}
 	
 exports.logs = function(req,res) {
     numLogs=req.body.numLogs;
@@ -206,6 +224,8 @@ exports.logs = function(req,res) {
     require('./log-control').getLastXLogs(numLogs,res);
 
 };
+
+
 
 exports.execute = function(req,res) {
 
