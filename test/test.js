@@ -1,4 +1,8 @@
 
 require('../server.js')(3001, function(err) {
-	process.exit(0);
+	if (err) {
+		process.exit(1);
+	} else {
+		process.exit(0);
+	}
 });
