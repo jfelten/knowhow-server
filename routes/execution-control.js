@@ -34,6 +34,19 @@ setFileSocket = function(agent, socket) {
 };
 exports.setFileSocket = setFileSocket;
 
+setEventSocket = function(agent, socket) {
+	if (agent && agent._id) {
+		agentId=agent._id;
+		if(!currentJobs[agentId]) {
+			currentJobs[agentId] = {};
+			currentJobs[agentId].eventSocket=socket;
+			currentJobs[agentId].agent = agent;
+		} 
+	}
+
+};
+exports.setEventSocket = setEventSocket;
+
 updateJob = function(agent, job, callback ) {
 	if (agent && agent._id && job && job.id) {
 		logger.debug("updating: "+job.id);
@@ -230,7 +243,7 @@ var cancelJobOnAgent = function(agent,job,callback) {
 
 	var jobId = job.id;
 	var agentId = agent._id;
-	if (currentJobs[agentId].eventSocket) {
+	if (currentJobs[agentId] && currentJobs[agentId].eventSocket) {
 		currentJobs[agentId].eventSocket.emit('job-cancel',job);
 	}
 	eventEmitter.emit('cancel-job-on-agent',agent,job);
@@ -524,74 +537,76 @@ function setJobTimer(agent, job) {
 	    //wait until all files are received
 	    
 	    var missedHeartbeats =0;
-	    currentJobs[agentId][jobId].fileCheck = setInterval(function() {
-	    	
-	    	if (!currentJobs[agentId][jobId]) {
-	    		logger.info(jobId+ " not found.");
-	    		clearInterval(this);
-	    		return;
-	    	}
-	    	
-	    	maxMissedHeartbeats =10;
-	    	agentControl.heartbeat(agent, function(err) {
-		    	if (err) {
-		    		missedHeartbeats++;
-		    		if (missedHeartbeats>= maxMissedHeartbeats) {
-				    	logger.info(jobId+" lost contact with agent.");
-		    			//for (index in currentJobs[agentId][jobId].fileProgress) {
-				    	//	currentJobs[agentId][jobId].fileProgress[index].readStream.close();
-				        //}
-				        //agentEvents.agentSockets[agentId].fileSocket.close();
-				        if (currentJobs[agentId][jobId]) {
-					        currentJobs[agentId][jobId].error=true;
-					       	clearTimeout(currentJobs[agentId][jobId].timeout);
-			    			clearInterval(currentJobs[agentId][jobId].fileCheck);
-			    			eventEmitter.emit("job-error",agent,job);
-			    			cancelJob(agentId, jobId);
-			    		}	
-		    		}
+	    if ( currentJobs[agentId][jobId] && currentJobs[agentId][jobId].files &&  currentJobs[agentId][jobId].files.length >0) {
+		    currentJobs[agentId][jobId].fileCheck = setInterval(function() {
+		    	
+		    	if (!currentJobs[agentId][jobId]) {
+		    		logger.info(jobId+ " not found.");
+		    		clearInterval(this);
 		    		return;
 		    	}
-		    	missedHeartbeats=0;
 		    	
-		    	if (currentJobs[agentId][jobId] && (
-		    	!currentJobs[agentId][jobId].uploadComplete || currentJobs[agentId][jobId].uploadComplete != true)) {
-		    		numFilesUploaded=0;
-			    	for (index in currentJobs[agentId][jobId].fileProgress) {
-			    		var uploadFile = currentJobs[agentId][jobId].fileProgress[index];
-			    		if (uploadFile.uploadComplete == true) {
-			    		    numFilesUploaded++;
-			    		    if (numFilesUploaded >= job.files.length) {
-			    		    	logger.info("all files are uploaded.");
-			    		    	logger.info(jobId+" all files sent...");
-				    			//for (index in currentJobs[agentId][jobId].fileProgress) {
-						    	//	currentJobs[agentId][jobId].fileProgress[index].readStream.close();
-						        //}
-						        //currentJobs[agentId].fileSocket.close();
-						        currentJobs[agentId][jobId].uploadComplete=true;
+		    	maxMissedHeartbeats =10;
+		    	agentControl.heartbeat(agent, function(err) {
+			    	if (err) {
+			    		missedHeartbeats++;
+			    		if (missedHeartbeats>= maxMissedHeartbeats) {
+					    	logger.info(jobId+" lost contact with agent.");
+			    			//for (index in currentJobs[agentId][jobId].fileProgress) {
+					    	//	currentJobs[agentId][jobId].fileProgress[index].readStream.close();
+					        //}
+					        //agentEvents.agentSockets[agentId].fileSocket.close();
+					        if (currentJobs[agentId][jobId]) {
+						        currentJobs[agentId][jobId].error=true;
 						       	clearTimeout(currentJobs[agentId][jobId].timeout);
 				    			clearInterval(currentJobs[agentId][jobId].fileCheck);
-				    		}  		
-			    		} else if (uploadFile.error == true) {
-			    			logger.error(jobId+" error aborting upload.");
-			    			uploadFile.socket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );	
-			        		//for (index in currentJobs[agentId][jobId].fileProgress) {
-					    	//	fileProgress[index].readStream.close();
-					    	//	socket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );
-					        //}
-					        //currentJobs[agentId][jobId].eventSocket.emit('job-cancel',jobId);
+				    			eventEmitter.emit("job-error",agent,job);
+				    			cancelJob(agentId, jobId);
+				    		}	
 			    		}
+			    		return;
 			    	}
-			    	if (currentJobs[agentId][jobId].files != undefined) {
-			    		logger.debug(numFilesUploaded+ " of "+job.files.length+" files sent.");
-			    	} else {
-			    		logger.info("no files defined so none sent.");
-			    		//currentJobs[agentId].fileSocket.close();
-						currentJobs[agentId][jobId].uploadComplete=true;
-		    		}
-			    }
-	    	});
-	    }, checkInterval);
+			    	missedHeartbeats=0;
+			    	
+			    	if (currentJobs[agentId][jobId] && (
+			    	!currentJobs[agentId][jobId].uploadComplete || currentJobs[agentId][jobId].uploadComplete != true)) {
+			    		numFilesUploaded=0;
+				    	for (index in currentJobs[agentId][jobId].fileProgress) {
+				    		var uploadFile = currentJobs[agentId][jobId].fileProgress[index];
+				    		if (uploadFile.uploadComplete == true) {
+				    		    numFilesUploaded++;
+				    		    if (numFilesUploaded >= job.files.length) {
+				    		    	logger.info("all files are uploaded.");
+				    		    	logger.info(jobId+" all files sent...");
+					    			//for (index in currentJobs[agentId][jobId].fileProgress) {
+							    	//	currentJobs[agentId][jobId].fileProgress[index].readStream.close();
+							        //}
+							        //currentJobs[agentId].fileSocket.close();
+							        currentJobs[agentId][jobId].uploadComplete=true;
+							       	clearTimeout(currentJobs[agentId][jobId].timeout);
+					    			clearInterval(currentJobs[agentId][jobId].fileCheck);
+					    		}  		
+				    		} else if (uploadFile.error == true) {
+				    			logger.error(jobId+" error aborting upload.");
+				    			uploadFile.socket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );	
+				        		//for (index in currentJobs[agentId][jobId].fileProgress) {
+						    	//	fileProgress[index].readStream.close();
+						    	//	socket.emit('client-upload-error', {name: fileName, jobId: jobId, fileSize: fileSizeInBytes, destination: file.destination } );
+						        //}
+						        //currentJobs[agentId][jobId].eventSocket.emit('job-cancel',jobId);
+				    		}
+				    	}
+				    	if (currentJobs[agentId][jobId].files != undefined) {
+				    		logger.debug(numFilesUploaded+ " of "+job.files.length+" files sent.");
+				    	} else {
+				    		logger.info("no files defined so none sent.");
+				    		//currentJobs[agentId].fileSocket.close();
+							currentJobs[agentId][jobId].uploadComplete=true;
+			    		}
+				    }
+		    	});
+		    }, checkInterval);
+		}
 	}
 	
 }

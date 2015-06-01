@@ -110,6 +110,8 @@ var myModule = angular.module('myApp.controllers', []).
   controller('JobsController', function ($scope, $modal, $http, $timeout, $log, qs_repo, qs_agent) {
   
     
+    
+    
     $scope.runningJobs = {};
     $scope.output="";
     var loadJobs = function() {
@@ -185,21 +187,52 @@ var myModule = angular.module('myApp.controllers', []).
 	  $scope.$apply();
       
     });
-    
+    socket.on('execution-start', function(agent,command) {
+    	 console.log("starting: "+command.command);
+
+    	 $scope.$broadcast('generated-input', {
+			    input: true,
+			    text: command.command,
+			    breakLine: true
+			});
+		$scope.scrollTerminalToBottom();
+    });
     socket.on('execution-complete', function(agent,command) {
-    	 console.log(command);
     	 //$scope.runningJobs[agent._id].output+=command.output
     	 $scope.output+=command.command+"\n";
     	 $scope.output+=command.output+"\n";
+    	 var output = [];
+    	 output.push(command.output);
+    	 $scope.$broadcast('terminal-output', {
+		    output: true,
+		    text: output,
+		    breakLine: true
+		});
+		$scope.scrollTerminalToBottom();
+    	 
     });
     socket.on('execution-error', function(agent,command) {
     	 console.log('execution error message received');
     	 //$scope.runningJobs[agent._id].output+=command.output
-    	 $scope.output+=command.output;
+    	 var output = [];
+    	 output.push(command.output);
+    	 $scope.$broadcast('terminal-output', {
+		    output: true,
+		    text: output,
+		    breakLine: true,
+		    error: true
+		});
+		$scope.scrollTerminalToBottom();
     });
     $scope.clearOutput = function() {
-    	$scope.output = "";
+    	$scope.$broadcast('terminal-command', {
+ 		'command': 'clear'
+	  });
     }
+    
+    $scope.scrollTerminalToBottom = function() {
+    	document.getElementById('terminal').scrollBottom
+    };
     
     var updateRunningJobs = function(agent,job) {
     	if (agent && job && $scope.runningJobs[agent._id] && $scope.runningJobs[agent._id][job.id]) {
@@ -327,6 +360,12 @@ var myModule = angular.module('myApp.controllers', []).
 	  $scope.status.isopen = !$scope.status.isopen;
 	  var selectAgent = document.getElementById('selectAgent');
 	  selectAgent.textContent=agent.user+'@'+agent.host+':'+agent.port;
+  	  $scope.$broadcast('terminal-command', {
+ 		'command': 'change-prompt', 
+ 		'prompt': { 
+ 			'user': selectAgent.textContent
+ 		 }
+	  });
   };
 	  
 	  $scope.selectRepo = function(selectedRepo) {
@@ -386,6 +425,51 @@ var myModule = angular.module('myApp.controllers', []).
 		        return;
 		    }
 		    var data = {
+		    	khAgent: $scope.selectedAgent,
+		    	job: job
+		    };
+		    $http({
+			      method: 'POST',
+			      url: '/api/execute',
+			      data: data
+			    }).success(function (data, status, headers, config) {
+			    
+			        $scope.agentInfo = data;
+			        
+			        loadJobs();
+			        console.log("submitted job request");
+			        $scope.message="submitted "+job.id+" to "+$scope.selectedAgent.host+":"+$scope.selectedAgent.port;
+			        //$scope.$apply();
+			        
+			    }).
+			    error(function (data, status, headers, config) {
+			    	$scope.message = data.message+' : '+status;
+			    	//$scope.apply();
+			    });
+	  };
+	  
+	  $scope.$on('terminal-input', function (e, consoleInput) {
+        var cmd = consoleInput[0];
+		$scope.executeSingleCommand(cmd.command);
+	  });
+	  
+	  
+	  $scope.executeSingleCommand = function(command) {
+	  	console.log(command);
+	  	var job = {
+	  		"id": command,
+	  		"options": {
+	  			"noEcho": true
+	  		},
+	  		"script": {
+	  			"commands": [
+	  				{
+	  					"command" : command
+	  				}
+	  			]
+	  		}
+	  	}
+	  	 var data = {
 		    	khAgent: $scope.selectedAgent,
 		    	job: job
 		    };

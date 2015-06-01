@@ -129,7 +129,7 @@ exports.addNewFile = function(addPath, fileName, content, isDirectory, callback)
        if (err) {
          logger.error(err);
           // file does not exist
-          if (err.errno == 2 || err.errno == 34) {
+          if (err.errno == 2 || err.errno == 34 || err.code=='ENOENT') {
         		logger.info("download dir does not exist - creating dir: "+newPath);
 	        	mkdirp.sync(newPath, function (err) {
             	  if (err) {

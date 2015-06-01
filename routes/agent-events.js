@@ -8,6 +8,16 @@ var io;
 exports.agentSockets=agentSockets;
 
 function listenForEvents(agent, socket) {
+
+		socket.on('execution-start', function(command) {
+    		if (command) {
+				logger.debug("execution start");
+				logger.debug(command);
+				executionControl.eventEmitter.emit('execution-start',agent, command);
+			}
+			
+		});
+
 		socket.on('execution-complete', function(command) {
     		if (command) {
 				logger.debug("execution complete");
@@ -69,6 +79,7 @@ function listenForAgentEvents(agent, callback) {
 	agentSockets[agent._id].eventSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/agent-events');
 	agentSockets[agent._id].eventSocket.open();
 	listenForEvents(agent, agentSockets[agent._id].eventSocket);
+	executionControl.setEventSocket(agent, agentSockets[agent._id].eventSocket);
 	logger.info("connecting to http://: "+agent.host+":"+agent.port+'/agent-events' ); 
     agentSockets[agent._id].eventSocket.on('connect', function() {
     	logger.info("connected");
@@ -135,9 +146,9 @@ function openFileSocket(agent, callback) {
 		agentSockets[agent._id] = {};
 	}
 	logger.info('connecting to: http://'+agent.host+':'+agent.port+'/upload');
-		agentSockets[agent._id].fileSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/upload');
-		agentSockets[agent._id].fileSocket.open();
-		executionControl.setFileSocket(agent, agentSockets[agent._id].fileSocket);
+	agentSockets[agent._id].fileSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/upload');
+	agentSockets[agent._id].fileSocket.open();
+	executionControl.setFileSocket(agent, agentSockets[agent._id].fileSocket);
 
 	
 	agentSockets[agent._id].fileSocket.on('disconnect' ,function () {
@@ -320,10 +331,20 @@ function AgentEventHandler(io) {
 	executionControl.eventEmitter.on('cancel-job-on-agent', function(agent, job) {
 		if (job && agent) {
 			logger.info("sending cancel for "+job.id+' on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
+			//console.log(agentSockets);
 			agentSockets[agent._id].eventSocket.emit('job-cancel',job);
 		 } else {
 		 	logger.error("invalid job error event");
 		 }
+	});
+	executionControl.eventEmitter.on('execution-start', function(agent, command) {
+		try {
+			logger.info("broadcasting execution start.");
+			io.emit('execution-start', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+								, command);
+		} catch(err) {
+			logger.error("unable to broadcast execution complete event");
+		}
 	});
 	executionControl.eventEmitter.on('execution-complete', function(agent, command) {
 		

@@ -14,7 +14,8 @@ angular.module('myApp', [
   'qs_repository',
   'qs_workflow',
   'qs_agent',
-  'angularFileUpload'
+  'angularFileUpload',
+  'vtortola.ng-terminal'
 ]).
 config(function ($routeProvider, $locationProvider) {
   $routeProvider.

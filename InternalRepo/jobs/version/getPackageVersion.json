@@ -1,0 +1,18 @@
+{
+  "id": "starts KH Agent",
+  "working_dir": "/tmp/KHAgent",
+  "options": {
+    "timeoutms": 40000
+  },
+  "files": [],
+  "script": {
+    "env": {
+      "PACKAGE_NAME": "knowhow"
+    },
+    "commands": [
+      {
+        "command": "npm show ${PACKAGE_NAME} version"
+      }
+    ]
+  }
+}
