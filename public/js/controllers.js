@@ -1077,10 +1077,12 @@ var myModule = angular.module('myApp.controllers', []).
     $scope.onFileSelect = function($files, newRepo) {
 	    //$files: an array of files selected, each file has name, size, and type.
 	    var re = new RegExp('/', 'g');
+	    /*
 	    var createRepo = {
 	    	path: newRepo.path.replace(re,'~'),
 	    	name: newRepo.name
-	    }
+	    }*/
+	    var createRepo = newRepo.path.replace(re,'~')+','+newRepo.name;
 	    console.log(createRepo);
 	    for (var i = 0; i < $files.length; i++) {
 	      var file = $files[i];
@@ -1127,7 +1129,7 @@ var myModule = angular.module('myApp.controllers', []).
     	
     	var data = {
 		    	repo: repo,
-		    }
+		    };
     	$http({
 		      method: 'POST',
 		      url: '/repo/downloadRepoTarBall',

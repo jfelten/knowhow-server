@@ -92,19 +92,22 @@ var importFromServer = function(newRepo, callback) {
 		return;
 	});
 	d.run(function () {
-		request('http://'+newRepo.host+':'+newRepo.port+'/repo/downloadRepoTarBall?name='+newRepo.hostRepoName)
+		logger.debug("importing "+newRepo.hostRepoName+" from http://"+newRepo.host+":"+newRepo.port);
+		addFileRepo(newRepo, false, function(err, createdRepo) {
+		  	if(err) {
+		  		logger.error("unable to create repo: "+err.message);
+				callback(err);
+				return;
+			}
+			request('http://'+newRepo.host+':'+newRepo.port+'/repo/downloadRepoTarBall?name='+newRepo.hostRepoName+'&path='+newRepo.path)
 			.pipe(zlib.createGunzip())
 			.pipe(tar.Extract(options))
 			.on('close',function() {
-				addFileRepo(newRepo, false, function(err, createdRepo) {
-				  	if(err) {
-				  		logger.error("unable to create repo: "+err.message);
-						callback(err);
-						return;
-					}
-					callback(undefined, createdRepo)
-				});
+				callback(undefined, createdRepo);
 			});
+			
+		});
+		
 	});
 
 }
@@ -436,7 +439,7 @@ exports.api = {
 								}else {
 										info = {
 									        path: repo.path,
-									        label: repo.name,
+									        name: repo.name,
 									        type: "repo",
 									        _id: repo._id
 									    };
@@ -550,12 +553,11 @@ exports.api = {
 				    busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
 						logger.debug(fieldname);
 						logger.debug(filename);
-						try {
-							newRepo = JSON.parse(filename);
-						} catch(err) {
-							emitter.emit(err);
-							return;
-						}
+						var vals = filename.split(",")
+						var newRepo = {
+							path: vals[0],
+							name: vals[1]
+						};
 						var re = new RegExp('~', 'g');
 						newRepo.path=newRepo.path.replace(re,'/');
 						logger.debug('File [' + fieldname + ']: filename: ' + filename + ', encoding: ' + encoding + ', mimetype: ' + mimetype);
@@ -606,11 +608,19 @@ exports.api = {
     			//res.setHeader('Content-Length', );;
 				
 				logger.info("downloading: "+ filename);
-				var filestream = fstream.Reader({ 'path': path, 'type': 'Directory' }).on('error', function(err) {
-					logger.error(err.message);
-					res.send(500, err.message);
-					return;
-				});
+				var fullPath = pathlib.resolve(path);
+				var filestream = fstream.Reader({ 'path': fullPath, 'type': 'Directory',
+					filter: function () {
+			            if(this.dirname == fullPath) {
+			                this.root = null;
+			            }
+			            return !(this.basename.match(/^\.git/) || this.basename.match(/^node_modules/));
+			        } })
+			        .on('error', function(err) {
+						logger.error(err.message);
+						res.send(500, err.message);
+						return;
+					});
 				filestream.pipe(tar.Pack()).on('error', function(err) {
 					logger.error(err.message);
 					res.send(500, err.message);

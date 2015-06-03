@@ -1,8 +1,6 @@
 var logger=require('./routes/log-control').logger;
 var express = require('express');
-var app = express();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+
 var async = require('async');
 
 
@@ -28,128 +26,130 @@ function compile(str, path) {
 	    .set('filename', path)
 	    .use(nib());
 	};
+
+function configureApp(http, app) {	
+	app.use(express.static(path.join(__dirname, 'public')));
+	app.use(stylus.middleware(
+			  { src: __dirname + '/public/',
+			    dest: __dirname + '/public/', 
+			    compile: compile
+			  }
+			));
+	var io = require('socket.io')(http);
+	var agentEventHandler = new AgentEventHandler(io);
+	exports.agentEventHandler = agentEventHandler;
+	var dl = require('delivery');
+	fs = require('fs');
 	
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(stylus.middleware(
-		  { src: __dirname + '/public/',
-		    dest: __dirname + '/public/', 
-		    compile: compile
-		  }
-		));
-
-var agentEventHandler = new AgentEventHandler(io);
-exports.agentEventHandler = agentEventHandler;
-var dl = require('delivery');
-fs = require('fs');
-
-
-//New call to compress content
-var compress = require('compression')();
-app.use(compress);
-
-//app.use(express.static(__dirname+'/html' ));
-//app.use('/repo', express.static(__dirname+'/repo'));
-
-var port = 3001;
-exports.port = port;
-/**
-* Configuration
-*/
-
-//all environments
-//app.set('port', process.env.PORT || 3000);
-app.set('views', __dirname + '/views');
-app.set('view engine', 'jade');
-app.use(morgan('dev'));
-app.use(bodyParser());
-app.use(methodOverride());
-var env = process.env.NODE_ENV || 'development';
-
-//development only
-if (env === 'development') {
- app.use(errorHandler);
-}
-
-//production only
-if (env === 'production') {
- // TODO
-}
-
-
-/**
-* Routes
-*/
-
-//events
-
-app.get('/agent-updates',function(req,res) {
-	io.emit('agent-update', 'test');
-	res.json({
-	    name: 'Master01'
-	  });
-});
-
-
-//serve index and view partials
-app.get('/', routes.index);
-app.get('/partials/:name', routes.partials);
-app.get('/modals/:name', routes.modals);
-
-//JSON API
-app.get('/api/serverInfo', api.serverInfo);
-app.get('/api/connectedAgents', api.listAgents);
-app.get('/api/fileListForDir', api.fileListForDir);
-app.get('/api/fileContent', api.fileContent);
-app.get('/api/saveFile', api.saveFile);
-app.get('/api/repoList', api.repoList);
-app.get('/api/addFile', api.addFile);
-app.get('/api/deleteFile', api.deleteFile);
-
-
-//agent routes
-app.post('/api/addAgent', api.addAgent);
-app.post('/api/deleteAgent', api.deleteAgent);
-app.post('/api/getAgentInfo', api.getAgentInfo);
-app.post('/api/logs',api.logs);
-app.post('/api/agentEvent', api.agentEvent);
-app.get('/api/agentEvent', api.agentEvent);
-app.post('/api/execute', api.execute);
-app.post('/api/cancelJob', api.cancelJob);
-app.get('/api/runningJobsList', api.runningJobList);
-
-//workflow api
-app.post('/api/loadAgentsForEnvironment', workflowControl.loadAgentsForEnvironment);
-app.post('/api/initAgents', workflowControl.initAgents);
-app.post('/api/executeWorkflow', workflowControl.executeWorkflow);
-
-//repo urls
-var API = require('./routes/repository-control').api;
-for (index in API.routes) {
-	var route = API.routes[index];
 	
-	//logger.info(route.callback);
-	if (route) {
-		if (route.httpType == "POST") {
-			logger.info("adding route: "+route.httpType+" "+route.APICall);
-			app.post(route.APICall,route.callback);
-		} else if(route.httpType == "GET") {
-			logger.info("adding route: "+route.httpType+" "+route.APICall);
-			app.get(route.APICall,route.callback);
+	//New call to compress content
+	var compress = require('compression')();
+	app.use(compress);
+	
+	//app.use(express.static(__dirname+'/html' ));
+	//app.use('/repo', express.static(__dirname+'/repo'));
+	
+	var port = 3001;
+	exports.port = port;
+	/**
+	* Configuration
+	*/
+	
+	//all environments
+	//app.set('port', process.env.PORT || 3000);
+	app.set('views', __dirname + '/views');
+	app.set('view engine', 'jade');
+	app.use(morgan('dev'));
+	app.use(bodyParser());
+	app.use(methodOverride());
+	var env = process.env.NODE_ENV || 'development';
+	
+	//development only
+	if (env === 'development') {
+	 app.use(errorHandler);
+	}
+	
+	//production only
+	if (env === 'production') {
+	 // TODO
+	}
+	
+	
+	/**
+	* Routes
+	*/
+	
+	//events
+	
+	app.get('/agent-updates',function(req,res) {
+		io.emit('agent-update', 'test');
+		res.json({
+		    name: 'Master01'
+		  });
+	});
+	
+	
+	//serve index and view partials
+	app.get('/', routes.index);
+	app.get('/partials/:name', routes.partials);
+	app.get('/modals/:name', routes.modals);
+	
+	//JSON API
+	app.get('/api/serverInfo', api.serverInfo);
+	app.get('/api/connectedAgents', api.listAgents);
+	app.get('/api/fileListForDir', api.fileListForDir);
+	app.get('/api/fileContent', api.fileContent);
+	app.get('/api/saveFile', api.saveFile);
+	app.get('/api/repoList', api.repoList);
+	app.get('/api/addFile', api.addFile);
+	app.get('/api/deleteFile', api.deleteFile);
+	
+	
+	//agent routes
+	app.post('/api/addAgent', api.addAgent);
+	app.post('/api/deleteAgent', api.deleteAgent);
+	app.post('/api/getAgentInfo', api.getAgentInfo);
+	app.post('/api/logs',api.logs);
+	app.post('/api/agentEvent', api.agentEvent);
+	app.get('/api/agentEvent', api.agentEvent);
+	app.post('/api/execute', api.execute);
+	app.post('/api/cancelJob', api.cancelJob);
+	app.get('/api/runningJobsList', api.runningJobList);
+	
+	//workflow api
+	app.post('/api/loadAgentsForEnvironment', workflowControl.loadAgentsForEnvironment);
+	app.post('/api/initAgents', workflowControl.initAgents);
+	app.post('/api/executeWorkflow', workflowControl.executeWorkflow);
+	
+	//repo urls
+	var API = require('./routes/repository-control').api;
+	for (index in API.routes) {
+		var route = API.routes[index];
+		
+		//logger.info(route.callback);
+		if (route) {
+			if (route.httpType == "POST") {
+				logger.info("adding route: "+route.httpType+" "+route.APICall);
+				app.post(route.APICall,route.callback);
+			} else if(route.httpType == "GET") {
+				logger.info("adding route: "+route.httpType+" "+route.APICall);
+				app.get(route.APICall,route.callback);
+			}
 		}
 	}
+	
+	app.use(function(req, res, next) {
+	  if (req.path.indexOf("download") > -1)
+	    res.attachment(); //short for res.set('Content-Disposition', 'attachment')
+	  next();
+	});
+	
+	
+	
+	
+	//redirect all others to the index (HTML5 history)
+	app.get('*', routes.index);
 }
-
-app.use(function(req, res, next) {
-  if (req.path.indexOf("download") > -1)
-    res.attachment(); //short for res.set('Content-Disposition', 'attachment')
-  next();
-});
-
-
-
-
-//redirect all others to the index (HTML5 history)
-app.get('*', routes.index);
 
 /**
 * Start Server
@@ -242,7 +242,7 @@ var agentCheck = function() {
 //agentCheck();
 //setInterval(agentCheck,60000);
 
-var start = function(port,callback) {
+var start = function(http,port,callback) {
 	http.listen(port, function(err){
 		if (err) {
 			if (callback) {
@@ -264,8 +264,10 @@ var start = function(port,callback) {
 var KHServer = function(port, callback) {
 	
 	var self = this;
-	
-	start(port,callback);
+	self.app = express();
+	self.http = require('http').Server(self.app);
+	configureApp(self.http, self.app);
+	start(self.http,port,callback);
 	agentCheck();
 	setInterval(agentCheck,60000);
 	
