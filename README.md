@@ -15,7 +15,13 @@ NOTE: This currently only works on Unix based systems.  Please create an issue i
 
 run directly from node:
 
-    node server.js
+    node index.js --port=<PORT_NUM> //default is 3001 if not supplied
+
+or from a node.js app
+
+		require('knowhow-server/server.js')(testServerPort, function(err) {
+		
+		}
 
 or if installed via [knowhow](https://github.com/jfelten/knowhow):
 
