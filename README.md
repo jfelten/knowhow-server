@@ -15,17 +15,17 @@ NOTE: This currently only works on Unix based systems.  Please create an issue i
 
 run directly from node:
 
-    node index.js --port=<PORT_NUM> //default is 3001 if not supplied
+    node index.js --port=<PORT_NUM> //default port is 3001 if not supplied
 
 or from a node.js app
 
-		require('knowhow-server/server.js')(testServerPort, function(err) {
+		require('knowhow-server/server.js')(3001, function(err) {
 		
 		}
 
 or if installed via [knowhow](https://github.com/jfelten/knowhow):
 
-    startKHServer
+    startKHServer --port=<PORT_NUM> //default port is 3001 if not supplied
 
     
 
@@ -40,6 +40,10 @@ A knowhow agent is a simple web application that provides a control interface to
 ####[knowhow-server](https://github.com/jfelten/knowhow-server)
 
 Knowhow-server, this project, manages agents, jobs, workflows and repositories.  It is a web application accessed through the browser [http://localhost:3001](http://localhost:3001).
+
+####[knowhow-api](https://github.com/jfelten/knowhow-api)
+
+Knowhow-api provides a nodejs programming interface to a knowhow server.  It supports all functionality available via the knowhow server web GUI, and allows full automation of a knowhow server.  It also includes the command tool KHCommand, which allows any api command to be executed from a shell script to allow a knowhow server to be automated via shell scripts.
 
 ####[repository](https://github.com/jfelten/knowhow_example_repo)
 
