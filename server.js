@@ -12,7 +12,6 @@ morgan = require('morgan'),
 stylus = require('stylus'),
 nib = require('nib'),
 routes = require('./routes'),
-api = require('./routes/api'),
 fileControl = require('./routes/file-control'),
 AgentEventHandler = require('./routes/agent-events'),
 //http = require('http'),
@@ -27,7 +26,7 @@ function compile(str, path) {
 	    .use(nib());
 	};
 
-function configureApp(http, app) {	
+function configureApp(http, app, api) {	
 	app.use(express.static(path.join(__dirname, 'public')));
 	app.use(stylus.middleware(
 			  { src: __dirname + '/public/',
@@ -90,9 +89,10 @@ function configureApp(http, app) {
 	app.get('/', routes.index);
 	app.get('/partials/:name', routes.partials);
 	app.get('/modals/:name', routes.modals);
+
 	
 	//JSON API
-	app.get('/api/serverInfo', api.serverInfo);
+	app.get('/api/serverInfo', api.getServerInfoAPI);
 	app.get('/api/connectedAgents', api.listAgents);
 	app.get('/api/fileListForDir', api.fileListForDir);
 	app.get('/api/fileContent', api.fileContent);
@@ -260,6 +260,7 @@ var start = function(http,port,callback) {
 var KHServer = function(port, callback) {
 	
 	var self = this;
+	
 	self.app = express();
 	self.http = require('http').Server(self.app);
 	self.io = require('socket.io')(self.http);
@@ -269,7 +270,8 @@ var KHServer = function(port, callback) {
 		agentCheck(self.agentEventHandler);
 	}
 	setInterval(self.thisServerCheck,60000);
-	configureApp(self.http, self.app);
+	self.api = require('./routes/api.js')(this);
+	configureApp(self.http, self.app, self.api);
 	start(self.http,port,callback);
 	
 	

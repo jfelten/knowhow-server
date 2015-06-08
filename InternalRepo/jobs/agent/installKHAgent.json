@@ -10,7 +10,7 @@
     "args": [
       "-o",
       "StrictHostKeyChecking=no",
-      "-o", 
+      "-o",
       "PreferredAuthentications=keyboard-interactive,password",
       "${USER}@${HOST}"
     ],

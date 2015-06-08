@@ -314,6 +314,7 @@ exports.deleteAgent = function( agent, callback) {
 
 install = function(main_callback) {
     agent=this.agent;
+    serverInfo = this.serverInfo;
     fileControl.load("InternalRepo:///jobs/agent/installKHAgent.json", function(err,content) {
 			if (err) {
 				main_callback(err);
@@ -326,7 +327,7 @@ install = function(main_callback) {
 				} else {
 					job.script.env.USER=agent.user;
 				}
-				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
+				job.script.env.PASSWORD=decrypt(agent.password,serverInfo.cryptoKey);
 				job.script.env.HOST=agent.host;
 				if (agent.ip) {
 					job.script.env.HOST=agent.ip;
@@ -709,6 +710,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 	agent.callback = callback;
 	logger.info('adding agent: '+agent.user+'@'+agent.host+':'+agent.port);
 	logger.debug(agent);
+	logger.debug(serverInfo);
 		
 	
 	function_vars = {agent: agent};
@@ -859,6 +861,7 @@ function encrypt(text, cryptoKey){
 }
  
 function decrypt(text, cryptoKey){
+	console.log("deciphering: "+text+" with key: "+cryptoKey);
 	var decipher = crypto.createDecipher('aes-256-cbc',cryptoKey)
 	var dec = decipher.update(text,'hex','utf8')
 	dec += decipher.final('utf8');
