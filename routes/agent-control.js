@@ -43,8 +43,8 @@ defaultAgent = {
 	};
 exports.defaultAgent = defaultAgent;
 
-addDefaultAgent = function(callback) {
-	
+addDefaultAgent = function(username,callback) {
+	defaultAgent.user = username;
 	db.findOne(defaultAgent,function(err, doc) {
 		if(err) {
 			logger.error(err.message);
@@ -54,6 +54,7 @@ addDefaultAgent = function(callback) {
 			db.insert(defaultAgent, function (err, newDoc) {   
 			    logger.debug("added agent: "+newDoc);
 			    agent=newDoc;
+			    getStatus.bind({agent:defaultAgent})();
 				eventEmitter.emit('agent-add',agent);
 				
 			});
@@ -190,7 +191,7 @@ function loadAgent(agent, callback) {
 	//logger.debug("query agents:");
 	//logger.debug(queryParams);
 	db.find(queryParams, function(err, doc) {
-		logger.debug(doc);
+		//logger.debug(doc);
 		if (err) {
 			callback(err);
 			return;
@@ -237,7 +238,7 @@ initAgent = function(agent, serverInfo) {
 		login: "",
 		password: "",
 		host: "",
-		user: "",
+		user: serverInfo.user,
 		port: "3141",
 		status: "unknown",
 		type: "linux",
@@ -280,7 +281,7 @@ exports.deleteAgent = function( agent, callback) {
 			logger.debug("processing delete response: ");
 			
 			var output = '';
-			logger.debug(options.host + ' ' + response.statusCode);
+			//logger.debug(options.host + ' ' + response.statusCode);
 	        response.setEncoding('utf8');
 	
 	        response.on('data', function (chunk) {
@@ -423,11 +424,11 @@ getStatus = function(callback) {
 					agent.mode=obj.mode;
 	        		updateAgent(agent);
 	        	}            
-	            callback();
+	            if (callback) callback();
 	        } catch(err) {
 	        	logger.error(err.message);
 	        	logger.error(err.stack);
-	        	callback(err);
+	        	if (callback) callback(err);
 	        }
             
         });
@@ -436,7 +437,7 @@ getStatus = function(callback) {
 	request.on('error', function(er) {
 		logger.error('no agent running on agent: '+agent.host,er);
 		
-		callback();
+		if (callback) callback();
 	});
 	request.end();
 

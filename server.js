@@ -35,9 +35,6 @@ function configureApp(http, app) {
 			    compile: compile
 			  }
 			));
-	var io = require('socket.io')(http);
-	var agentEventHandler = new AgentEventHandler(io);
-	exports.agentEventHandler = agentEventHandler;
 	var dl = require('delivery');
 	fs = require('fs');
 	
@@ -165,10 +162,9 @@ function configureApp(http, app) {
 
 //});
 
-agentControl.addDefaultAgent();
 
 //do a heartbeat check each minute and make sure socket connections are made
-var agentCheck = function() {
+var agentCheck = function(agentEventHandler) {
 	agentControl.listAgents(function (err, agents) {
 		//logger.debug(agents);
 		var agentConnects = new Array(agents.length);
@@ -266,10 +262,17 @@ var KHServer = function(port, callback) {
 	var self = this;
 	self.app = express();
 	self.http = require('http').Server(self.app);
+	self.io = require('socket.io')(self.http);
+	self.agentEventHandler = new AgentEventHandler(self.io);
+	agentCheck(self.agentEventHandler);
+	self.thisServerCheck = function () {
+		agentCheck(self.agentEventHandler);
+	}
+	setInterval(self.thisServerCheck,60000);
 	configureApp(self.http, self.app);
 	start(self.http,port,callback);
-	agentCheck();
-	setInterval(agentCheck,60000);
+	
+	
 	
 	return self;
 };

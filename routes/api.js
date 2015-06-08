@@ -5,6 +5,8 @@ var executionControl = require('./execution-control');
 var moment = require('moment');
 var server = require('../server');
 var fs = require('fs');
+var async = require('async');
+var username = require('username');
 /*
  * Serve JSON to our AngularJS client
  */
@@ -23,10 +25,23 @@ exports.listAgents = function(req, res) {
 	});
 };
 
+var usernameVar = "unknown";
+username(function (err, username) {
+    if (err) {logger.error(err.stack); callback(err);}
+    else {
+    	console.log(username);
+	    usernameVar = username;
+	    agentControl.addDefaultAgent(usernameVar);
+	}
+});
+
 
 getServerInfo = function() {
+
+	
     var os = require("os");
     var pjson = require('../package.json');
+   
 	serverInfo = {
 	  		version: pjson.version,
 	  		copyright: moment().format('YYYY'),
@@ -34,7 +49,8 @@ getServerInfo = function() {
 		    started: startTime,
 		    port: server.port,
 		    workingDir: require('process').cwd(),
-		    cryptoKey: 	'd6F3Efea'
+		    cryptoKey: 	'd6F3Efea',
+		    username: usernameVar
 	};
 	
 	return serverInfo;
@@ -44,7 +60,7 @@ exports.getServerInfo = getServerInfo;
 
 exports.serverInfo = function (req, res) {
   var os = require("os");
-  logger.info(req.connection.remoteAddress);
+  logger.info(req.connection.remoteAddress+" "+usernameVar);
   res.json(getServerInfo());
 };
 
@@ -150,7 +166,7 @@ exports.addAgent = function (req, res) {
   }
   var agent = req.body;
   try {
-	  agentControl.addAgent(agent, server.agentEventHandler, getServerInfo(), function(err, newAgent) {
+	  agentControl.addAgent(agent, server.agentEventHandler, serverInfo, function(err, newAgent) {
 	  	if (err) {
 	  		res.send(500, {"message": err.message});
 	  		return;

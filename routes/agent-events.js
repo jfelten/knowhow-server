@@ -34,6 +34,14 @@ function listenForEvents(agent, socket) {
 			
 		});
 		
+		socket.on('execution-password-prompt', function(command) {
+    		if (command) {
+				logger.debug("execution error");
+				executionControl.eventEmitter.emit('execution-password-prompt',agent, command);
+			}
+			
+		});
+		
 		
 		socket.on('job-update', function(job){
     		if (job) {
@@ -361,6 +369,16 @@ function AgentEventHandler(io) {
 		try {
 			logger.info("broadcasting execution error for agent");
 			io.emit('execution-error', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
+								, command);
+		} catch(err) {
+			logger.error("unable to broadcast execution error event");
+		}
+	});
+	executionControl.eventEmitter.on('execution-password-prompt', function(agent, command) {
+		
+		try {
+			logger.info("broadcasting execution password prompt");
+			io.emit('execution-password-prompt', {_id: agent._id, host: agent.host, port: agent.port, user: agent.user} 
 								, command);
 		} catch(err) {
 			logger.error("unable to broadcast execution error event");
