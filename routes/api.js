@@ -265,7 +265,7 @@ var execute = function(req,res) {
 	var agent = req.body.khAgent;
 	var job =  req.body.job;
 	logger.debug(require('util').inspect(job, {depth:null}));
-	agentControl.loadAgent(agent, function (agentError, loadedAgent) {
+	this.agentControl.loadAgent(agent, function (agentError, loadedAgent) {
 		
 		
 		this.executionControl.executeJob(loadedAgent, job, function(err){
@@ -283,7 +283,7 @@ var execute = function(req,res) {
 				res.json({ok:true});
 			}
 		});
-	});
+	}.bind({executionControl: this.executionControl}));
 };
 
 var cancelJob = function(req,res) {
@@ -334,7 +334,7 @@ var api = function(server, callback) {
 		this.deleteAgent = deleteAgent;
 		this.getAgentInfo = getAgentInfo;
 		this.logs = logs;
-		this.execute = execute.bind({executionControl: server.executionControl});
+		this.execute = execute.bind({agentControl: server.agentControl, executionControl: server.executionControl});
 		this.cancelJob = cancelJob.bind({executionControl: server.executionControl});;
 		this.repoList = repoList;
 		this.runningJobList = runningJobList.bind({executionControl: server.executionControl});;
