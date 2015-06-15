@@ -338,7 +338,6 @@ var api = function(server, callback) {
 		this.cancelJob = cancelJob.bind({executionControl: server.executionControl});;
 		this.repoList = repoList;
 		this.runningJobList = runningJobList.bind({executionControl: server.executionControl});;
-	    this.agentControl.addDefaultAgent(usernameVar);
 	    callback(undefined,this);
 	});
 	
