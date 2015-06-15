@@ -642,9 +642,10 @@ var handleWorkflowEvents = function(agentControl, executeControl) {
 	});
 
 	executeControl.eventEmitter.on('job-update', function(agent, job) {
-		logger.info('received workflow job update.');
 		
-		if (agent && job) {
+		
+		if (agent && job && activeJobs[agent._id] && activeJobs[agent._id][job.id]) {
+			logger.info('received workflow job update.');
 			 //var taskId = activeJobs[agent._id][job.id].taskId;
 			 //var environmentId = activeJobs[agent._id][job.id].environmentId;
 			//runningTasks[environmentId][taskId].agentJobs[job.id] = job;
