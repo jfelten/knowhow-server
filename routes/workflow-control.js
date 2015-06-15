@@ -1,21 +1,20 @@
 var logger=require('./log-control').logger;
 var async = require('async');
-var EventEmitter = require('events').EventEmitter;
-var eventEmitter = new EventEmitter();
-var agentControl=require('./agent-control');
-var fileControl=require('./file-control');
-var executeControl = require('./execution-control')
+
 var api = require('./api')
 
 var activeJobs={};
 var runningTasks = {};
 var completedTasks = {};
 
-exports.initAgents = function(req, res) {
+var EventEmitter = require('events').EventEmitter;
+var eventEmitter = new EventEmitter();
+
+var initAgentsAPICall = function(req, res) {
 	var credentials = req.body.credentials;
 	var environment = req.body.environment;
 	if (environment && environment.agents) {
-		initAgents(credentials, environment.agents, function(err, agents) {
+		initAgents(credentials, environment.agents, this.server.agentEventHandler, this.server.serverInfo, function(err, agents) {
 			if (err) {
 				logger.error(err.message);
 				res.send(500, err);
@@ -40,7 +39,7 @@ exports.initAgents = function(req, res) {
 	}
 }
 
-initAgents = function(credentials, agents, callback) {
+initAgents = function(credentials, agents, eventHandler, serverInfo, callback) {
 	var agentInits = new Array(agents.length);
 	logger.info("workflow-control init agents");
 	logger.debug(agents);
@@ -74,7 +73,7 @@ initAgents = function(credentials, agents, callback) {
 					}
 					
 					logger.info("initializing agent: "+newAgent.user+"@"+newAgent.host+":"+newAgent.port);
-					agentControl.addAgent(newAgent, api.getServerInfo(), function (err) {
+					agentControl.addAgent(newAgent, eventHandler, serverInfo, function (err) {
 						if (err) {
 							callback(err);
 						} else {
@@ -107,10 +106,11 @@ initAgents = function(credentials, agents, callback) {
 
 
 
-exports.loadAgentsForEnvironment = function(req, res) {
+var loadAgentsForEnvironmentAPICall = function(req, res) {
 	var environment = req.body.environment;
-	loadAgentsForEnvironment(environment, function (err, loadedEnvironment) {
+	loadAgentsForEnvironment(environment, this.server.agentEventHandler, this.server.serverInfo, function (err, loadedEnvironment) {
 		if (err) {
+			logger.error(err);
 			res.send(500, err);
 			return;
 		} else {
@@ -121,29 +121,43 @@ exports.loadAgentsForEnvironment = function(req, res) {
 	});
 };
 
-loadAgentsForEnvironment = function(environment, callback) {
+loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callback) {
 
 	if (environment.agents) {
 		this.environment = environment;
-		var queries = new Array(environment.agents.length);
-		var i = 0;
-		for (designation in environment.agents) {
-			queries[i] = function(callback) {
-				var designation = this.designation;
-				logger.debug("loading agent for: "+designation);
-				logger.debug(environment.agents[designation]);
-				agentControl.loadAgent(environment.agents[designation], function(err, loadedAgent) {
-					if (loadedAgent) {
+		console.log("loading "+Object.keys(environment.agents).length+" agents.");
+		console.log(environment.agents);
+		async.eachSeries(Object.keys(environment.agents), function(designation, cb ) {
+				var envAgent = environment.agents[designation];
+				logger.debug("loading agent for: "+envAgent.designation);
+				logger.debug(envAgent);
+				agentControl.loadAgent(envAgent, function(err, loadedAgent) {
+					if (loadedAgent && loadedAgent.status =="READY" ) {
 						environment.agents[designation]=loadedAgent;
+						cb();
+					} else {
+						console.log("no agent found for: "+designation);
+						console.log(environment.agents[this.designation]);
+						agentControl.deleteAgent(envAgent, function(err, numRemoved) {
+							agentControl.addAgent(envAgent, eventHandler, serverInfo, function(err, newAgent) {
+								console.log("added agent found for: "+designation+" "+envAgent.port);
+								if (err) {
+									cb(err);
+									return;
+								}
+								environment.agents[this.designation]=newAgent;
+								cb();
+							}.bind({agent: envAgent}));
+						});
+
+
+						
 					}
-					logger.debug(environment.agents[designation]);
-					callback();
+					
 				});
-			}.bind({designation: designation});
-			i++;
-		}
-		async.parallel(queries,function(err) {
-			if (err) {
+
+		}, function(err) {
+		if (err) {
 				if (callback) {
 					callback(err);
 				}
@@ -154,14 +168,14 @@ loadAgentsForEnvironment = function(environment, callback) {
 					callback(undefined, environment);
 				}
 			}
-			return;
 		});
+		
 	} else if (callback) {
 		callback(undefined,environment);
 	}
 }
 
-execute = function(environment,workflow,callback) {
+var execute = function(environment,workflow, executeControl, agentControl, callback) {
 
 	var agents = workflow.agents;
 			
@@ -185,7 +199,7 @@ execute = function(environment,workflow,callback) {
 				
 				logger.debug(task);
 				this.initTasks[taskIndex] = function (icallback) {
-					initRunningTask(environment,this.task, function(err, initializedTask){
+					initRunningTask(environment,this.task, executeControl, agentControl, function(err, initializedTask){
 						if (err) {
 							icallback(err);
 							return;
@@ -203,7 +217,7 @@ execute = function(environment,workflow,callback) {
 					var environment = this.environment;
 					logger.info("starting: "+this.task.id);
 					
-					performTask(environment, task, function(err, agent, job){
+					performTask(environment, task, executeControl, function(err, agent, job){
 						if(err) {
 							logger.error(task.id+" task error: "+err.message);
 							completedTasks[task.id] = {
@@ -294,12 +308,13 @@ execute = function(environment,workflow,callback) {
 
 };
 
-exports.executeWorkflow = function(req, res) {
+var executeWorkflowAPICall = function(req, res) {
 	var environment = req.body.environment;
 	var workflow = req.body.workflow;
 	if (environment && workflow && environment.agents) {
-		execute(environment, workflow, function(err, runWorkflow) {
+		execute(environment, workflow, this.server.executionControl, this.server.agentControl, function(err, runWorkflow) {
 			if (err) {
+				logger.error(err.stack);
 				logger.error(err.message);
 				res.json(500, {"message": err.message} );
 				//res.send(500, err);
@@ -311,6 +326,7 @@ exports.executeWorkflow = function(req, res) {
 		
 	} else {
 		if (!environment || !environment.agents) {
+			logger.error(environment);
 			logger.error("environment is not selected.")
 			res.json(500, {"message": "environment is not selected."} );
 		}
@@ -324,7 +340,7 @@ exports.executeWorkflow = function(req, res) {
 };
 
 
-seriesTask = function(environment, task, scallback) {
+seriesTask = function(environment, task, executeControl, scallback) {
 	logger.info("executing series task");
 	logger.debug(task.executeTasks);
 	logger.debug(task);
@@ -348,7 +364,7 @@ seriesTask = function(environment, task, scallback) {
 		
 };
 
-paralellTask = function(environment, task, pcallback) {
+paralellTask = function(environment, task, executeControl, pcallback) {
 
 	logger.info("executing paralell task");
 	logger.debug(task);
@@ -374,7 +390,7 @@ paralellTask = function(environment, task, pcallback) {
 	
 };
 
-var initRunningTask = function(environment, task, callback) {
+var initRunningTask = function(environment, task, executeControl, agentControl, callback) {
 
 	if (!task.id) {
 		callback(new Error("Missing task.id"));
@@ -389,7 +405,7 @@ var initRunningTask = function(environment, task, callback) {
 		callback(new Error("no agents defined for "+task.id));
 	}
 	init = function(loadedTask) {
-		loadTaskAgents(environment, loadedTask, function(err) {
+		loadTaskAgents(environment, loadedTask, agentControl, function(err) {
 			if (err) {
 				logger.error(err.message);
 				callback(err);
@@ -428,7 +444,7 @@ var initRunningTask = function(environment, task, callback) {
 									newJob .id=loadedTask.job.id+"("+name+"="+envValue+")";
 									task.executeTasks.push(function(pcallback) {
 										logger.debug("submitting "+this.job.id+" to: "+agent.designation);
-										jobTask(this.environment, this.task, this.agent, this.job, pcallback);
+										jobTask(this.environment, this.task, this.agent, this.job, executeControl, pcallback);
 									}.bind({agent: loadedTask.agents[index].agentObject, job: newJob, environment: environment, task: loadedTask }));
 								}
 							}
@@ -436,7 +452,7 @@ var initRunningTask = function(environment, task, callback) {
 					} else {
 						task.executeTasks.push(function(pcallback) {
 							logger.debug("submitting "+this.job.id+" to: "+agent.designation);
-							jobTask(this.environment, this.task, this.agent, this.job, pcallback);
+							jobTask(this.environment, this.task, this.agent, this.job, executeControl, pcallback);
 						}.bind({agent: loadedTask.agents[index].agentObject, job: loadedTask.job, environment: environment, task: loadedTask }));
 					}
 				} else {
@@ -488,22 +504,30 @@ var initRunningTask = function(environment, task, callback) {
 	
 };
 
-var loadTaskAgents = function(environment, task, callback) {
+var loadTaskAgents = function(environment, task, agentControl, callback) {
 	logger.debug(task.agents);
-	for (var agentIndex=0; agentIndex < task.agents.length; agentIndex++) {
-		var designation = task.agents[agentIndex].agent;
+	async.eachSeries(task.agents, function(taskAgent, cb) {
+		var designation = taskAgent.agent;
 		logger.debug("loading agent info for: "+designation);
 		if (environment.agents[designation]) {
-			task.agents[agentIndex].agentObject = environment.agents[designation];
+			agentControl.loadAgent(environment.agents[designation], function(err, loadedAgent) {
+				taskAgent.agentObject = loadedAgent;
+				cb();
+			});
 		} else {
-			callback(new Error("Invalid agent designation: "+designation));
+			cb(new Error("Invalid agent designation: "+designation));
 			return;
 		}
-	}
-	callback();
+	}, function(err) {
+		if (err) {
+			callback(err);
+		} else {
+			callback();
+		}
+	});
 };
 
-jobTask = function(environment, task, agent, job, callback) {
+var jobTask = function(environment, task, agent, job, executeControl, callback) {
 	if (environment && task && agent && job) {
 		logger.info("executing: "+job.id+" of "+task.id+" on "+agent.host);
 		logger.debug(task);
@@ -516,6 +540,7 @@ jobTask = function(environment, task, agent, job, callback) {
 		
 		executeControl.executeJob(agent, job, function(err, scriptRuntime) {
 			if (err) {
+				logger.error(err.stack);
 				logger.error("unable to start task");
 				eventEmitter.emit('task-error',task,agent,job);
 				callback(err,task,agent,job);
@@ -553,12 +578,12 @@ var taskTypes = {
 	job: jobTask
 };
 
-performTask = function(environment, task,callback) {
+performTask = function(environment, task, executeControl, callback) {
 	
 	if (!taskTypes[task.type]) {
 		callback(new Error("invalid task type"));
 	}
-	taskTypes[task.type](environment,task, callback);
+	taskTypes[task.type](environment,task, executeControl, callback);
 };
 
 var lookupEnvironmentForAgent = function(agent, callback) {
@@ -574,7 +599,8 @@ var lookupEnvironmentForAgent = function(agent, callback) {
 	callback(undefined);
 };
 
-var eventHandler = function() {
+var handleWorkflowEvents = function(agentControl, executeControl) {
+
 	logger.info("listening for events");
 	agentControl.eventEmitter.on('agent-error', function(agent) {
 		if (agent) {
@@ -713,5 +739,20 @@ var cancelWorkflow = function(workflow) {
 
 };
 	
-eventHandler();
+var WorkflowControl = function(server) {
+
+	var self = this;
+	
+	self.server = server;
+
+	self.loadAgentsForEnvironmentAPICall=loadAgentsForEnvironmentAPICall.bind({server: self.server});
+	self.executeWorkflowAPICall=executeWorkflowAPICall.bind({server: self.server});
+	self.initAgentsAPICall = initAgentsAPICall.bind({server: self.server});
+	
+	handleWorkflowEvents(server.agentControl, server.executionControl);
+	
+	return self;
+}	
+	
+module.exports = WorkflowControl;
 

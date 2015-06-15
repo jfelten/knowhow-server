@@ -15,7 +15,7 @@
       "${USER}@${HOST}"
     ],
     "onConnect": {
-      "timeoutms": 20000,
+      "timeoutms": 10000,
       "responses": {
         "[Pp]assword:": "${PASSWORD}"
       },

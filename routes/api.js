@@ -1,7 +1,7 @@
 var logger=require('./log-control').logger;
 var agentControl = require('./agent-control');
 var fileControl = require('./file-control');
-var executionControl = require('./execution-control');
+
 var moment = require('moment');
 var server = require('../server');
 var fs = require('fs');
@@ -26,20 +26,15 @@ var listAgents = function(req, res) {
 };
 
 var usernameVar = "unknown";
-username(function (err, username) {
-    if (err) {logger.error(err.stack); callback(err);}
-    else {
-	    usernameVar = username;
-	    agentControl.addDefaultAgent(usernameVar);
-	}
-});
 
 
-var getServerInfo = function() {
+
+var getServerInfo = function(userName) {
 
 	
     var os = require("os");
     var pjson = require('../package.json');
+    
    
 	serverInfo = {
 	  		version: pjson.version,
@@ -49,7 +44,7 @@ var getServerInfo = function() {
 		    port: server.port,
 		    workingDir: require('process').cwd(),
 		    cryptoKey: 	'd6F3Efea',
-		    username: usernameVar
+		    username: userName
 	};
 	
 	return serverInfo;
@@ -59,8 +54,8 @@ exports.getServerInfo = getServerInfo;
 
 var getServerInfoAPI = function (req, res) {
   var os = require("os");
-  logger.info(req.connection.remoteAddress+" "+usernameVar);
-  res.json(getServerInfo());
+  logger.info(req.connection.remoteAddress);
+  res.json(this.serverInfo);
 };
 
 var fileListForDir = function (req,res) {
@@ -182,6 +177,30 @@ var addAgent = function (req, res) {
 
 };
 
+var resetAgent = function (req, res) {
+  logger.info('reset agent: '+req.body.host);
+  for (i in req.params) {
+	  logger.debug(params[i]);
+  }
+  var agent = req.body;
+  
+  try {
+	  agentControl.resetAgent(agent, this.agentEventHandler, getServerInfo(), function(err, newAgent) {
+	  	if (err) {
+	  		res.send(500, {"message": err.message});
+	  		return;
+	  	} else {
+		  	res.json(newAgent);
+		}
+	  });
+  } catch (err) {
+ 	logger.error(err.message);
+  	logger.error(err.stack);
+  }
+  
+
+};
+
 var agentEvent = function (req, res) {
 	  logger.info('agent event: '+req.body.host);
 	  for (i in req.params) {
@@ -198,6 +217,7 @@ var deleteAgent = function (req, res) {
 	  logger.info('delete agent: '+req.body._id);
 
 	  var agent = req.body;
+	  console.log(agent);
 	  agentControl.deleteAgent(agent, function(err, numdeleted) {
 	  	if (err) {
 	  		res.send(500, err);
@@ -248,7 +268,7 @@ var execute = function(req,res) {
 	agentControl.loadAgent(agent, function (agentError, loadedAgent) {
 		
 		
-		executionControl.executeJob(loadedAgent, job, function(err){
+		this.executionControl.executeJob(loadedAgent, job, function(err){
 			if (err) {
 				var jobName = "undefined id";
 				if (job) {
@@ -270,7 +290,7 @@ var cancelJob = function(req,res) {
 	var agent = req.body.khAgent;
 	var job =  req.body.job;
 	
-	executionControl.cancelJobOnAgent(agent, job, function(err){
+	this.executionControl.cancelJobOnAgent(agent, job, function(err){
 		if (err) {
 			logger.error(job.id+" could not be cancelled.");
 			logger.error(err);
@@ -287,35 +307,42 @@ var repoList = function(req, res) {
 };
 
 var runningJobList = function(req, res) {
-	executionControl.getRunningJobsList(function(runningJobList) {
+	this.executionControl.getRunningJobsList(function(runningJobList) {
 		logger.debug(runningJobList);
 		res.json(runningJobList);
 	});
 	
 };
 
-var api = function(server) {
-
-
+var api = function(server, callback) {
 	this.server = server;
-	this.listAgents = listAgents;
-	this.getServerInfo = getServerInfo;
-	this.getServerInfoAPI = getServerInfoAPI;
-	this.fileListForDir = fileListForDir;
-	this.fileContent = fileContent;
-	this.addFile = addFile;
-	this.deleteFile = deleteFile;
-	this.saveFile = saveFile;
-	this.addAgent = addAgent.bind({serverInfo: getServerInfo(), agentEventHandler: server.agentEventHandler});
-	this.agentEvent = agentEvent;
-	this.deleteAgent = deleteAgent;
-	this.getAgentInfo = getAgentInfo;
-	this.logs = logs;
-	this.execute = execute;
-	this.cancelJob = cancelJob;
-	this.repoList = repoList;
-	this.runningJobList = runningJobList;
-	return this;
+	username(function (err, userName) {
+		
+
+		this.listAgents = listAgents;
+		this.serverInfo = getServerInfo(userName);
+		console.log(serverInfo);
+		this.getServerInfoAPI = getServerInfoAPI.bind({serverInfo: this.serverInfo});;
+		this.fileListForDir = fileListForDir;
+		this.fileContent = fileContent;
+		this.addFile = addFile;
+		this.deleteFile = deleteFile;
+		this.saveFile = saveFile;
+		this.addAgent = addAgent.bind({serverInfo: this.serverInfo, agentEventHandler: server.agentEventHandler});
+		this.resetAgent = resetAgent.bind({serverInfo: this.serverInfo, agentEventHandler: server.agentEventHandler});
+		this.agentEvent = agentEvent;
+		this.deleteAgent = deleteAgent;
+		this.getAgentInfo = getAgentInfo;
+		this.logs = logs;
+		this.execute = execute.bind({executionControl: server.executionControl});
+		this.cancelJob = cancelJob.bind({executionControl: server.executionControl});;
+		this.repoList = repoList;
+		this.runningJobList = runningJobList.bind({executionControl: server.executionControl});;
+	    this.agentControl.addDefaultAgent(usernameVar);
+	    callback(undefined,this);
+	});
+	
+	
 }
 
 module.exports = api;

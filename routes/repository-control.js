@@ -406,7 +406,7 @@ var importFromGIT = function(newRepo, callback) {
 		}
 	};
 	knowhowShell = new KnowhowShell();
-	knowhowShell.executeJob(cloneJob, function(err, completedJobRuntime) {
+	knowhowShell.executeJobAsSubProcess(cloneJob, function(err, completedJobRuntime) {
 		if (err) {
 			logger.error(err.message);
 			callback(err);

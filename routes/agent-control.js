@@ -51,8 +51,11 @@ addDefaultAgent = function(username,callback) {
 			return;
 		}
 		if (!doc) {
-			db.insert(defaultAgent, function (err, newDoc) {   
-			    logger.debug("added agent: "+newDoc);
+			db.insert(defaultAgent, function (err, newDoc) { 
+				if (err) {
+					logger.error(err.stack);
+				}  
+			    logger.debug("added default agent: "+newDoc._id);
 			    agent=newDoc;
 			    getStatus.bind({agent:defaultAgent})();
 				eventEmitter.emit('agent-add',agent);
@@ -165,7 +168,10 @@ exports.listAgents = listAgents;
 
 function loadAgent(agent, callback) {
 	if (!agent) {
-		callback(new Error("no agent provided"));
+		logger.error("no agent data provided to loadAgent");
+		if (callback) {
+			callback(new Error("no agent provided"));
+		}
 		return;
 	}
 
@@ -175,21 +181,21 @@ function loadAgent(agent, callback) {
 	if (agent._id) {
 		queryParams._id=agent._id;
 	} else {
-		if (agent.host) {
-			//queryParams.push({"host": agent.host});
-			queryParams.host=agent.host;
-		}
+		queryParams = {$and: []};
+		
 		if (agent.user) {
-			queryParams.user=agent.user;
+			queryParams.$and.push({user: agent.user});
 		}
 		if (agent.port) {
-			//queryParams.push({"port": agent.port});
-			queryParams.port=parseInt(agent.port);
+			queryParams.$or=[{port: +agent.port, port: ""+agent.port}];
+		}
+		if (agent.host) {
+			queryParams.$and.push({host: agent.host});
 		}
 	}
 	
-	//logger.debug("query agents:");
-	//logger.debug(queryParams);
+	logger.debug("query agents:");
+	console.log(queryParams);
 	db.find(queryParams, function(err, doc) {
 		//logger.debug(doc);
 		if (err) {
@@ -199,6 +205,7 @@ function loadAgent(agent, callback) {
 //		docs.forEach(function(agent) {
 //			console.log(agent);
 //		});
+		logger.debug("found: "+doc.length);
 		if (callback) {
 			callback(undefined, doc[0]);
 		}
@@ -206,6 +213,36 @@ function loadAgent(agent, callback) {
 };
 
 exports.loadAgent = loadAgent;
+
+function lookupPasswordForUser(userName, callback) {
+	if (!userName) {
+		callback(new Error("no username provided"));
+		return;
+	}
+
+	
+	logger.debug("searching for password for: "+userName);
+	db.find({user: userName, passwordEnc: { $exists: true } }, function(err, doc) {
+		logger.debug("password search complete");
+		if (err) {
+			logger.error(err.stack)
+			callback(err);
+			return;
+		}
+		console.log("found "+doc.length);		
+		doc.forEach(function(agent) {
+			console.log(agent);
+		});
+		if (callback) {
+			if (doc[0])
+				callback(undefined, doc[0].passwordEnc);
+			else 
+				callback(new Error("unable to find password"));
+		}
+	  });
+};
+
+exports.lookupPasswordForUser = lookupPasswordForUser;
 
 exports.doesAgentIdExist = function(agentId, callback) {
 	var queryParams = {}
@@ -233,38 +270,59 @@ exports.doesAgentIdExist = function(agentId, callback) {
 	  });
 }
 
-initAgent = function(agent, serverInfo) {
+initAgent = function(agent, serverInfo, callback) {
 	agent_prototype = {
 		login: "",
-		password: "",
 		host: "",
-		user: serverInfo.user,
-		port: "3141",
+		user: serverInfo.username,
+		port: 3141,
 		status: "unknown",
 		type: "linux",
 		progress: 1
 	};
-	
+	console.log(serverInfo);
+	console.log(agent_prototype);
 	var props = Object.getOwnPropertyNames(agent);
 	props.forEach(function(prop){
 		 agent_prototype[prop]=agent[prop];
-		 logger.debug('initAgent: adding property: '+agent[prop]);
+		 logger.debug('initAgent: adding property: '+prop);
 	});
 	
 	if (agent_prototype.login != undefined && agent_prototype.user == "") {
 		agent_prototype.user = agent_prototype.login;
 	}
-	agent_prototype.password=encrypt(agent_prototype.password, serverInfo.cryptoKey);
-	logger.info("initialized agent: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
+	if(agent_prototype.password) {
+		agent_prototype.passwordEnc=encrypt(agent_prototype.password, serverInfo.cryptoKey);
+		callback(undefined, agent_prototype);
+		logger.info("initialized agent: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
+	}
+	else if (!agent_prototype.password) {
+		lookupPasswordForUser(agent_prototype.user, function(err, password) {
+			if (err && callback) {
+				callback(err);
+			}
+			agent_prototype.passwordEnc=password;
+			if (callback) {
+				callback(undefined, agent_prototype);
+			}
+			logger.info("initialized agent with password: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
+		});
+	} 
 	return agent_prototype;
 };
 
 exports.deleteAgent = function( agent, callback) {
 	loadAgent( agent, function(err, loadedAgent) {
-		if (err || !loadedAgent) {
+		if (!loadedAgent) {
 			//agent.message = 'agent does not exist';
 			//eventEmitter.emit('agent-error',agent);
+			logger.error("agent does not exist: "+agent.user+"@"+agent.host+":"+agent.port);
 			callback(new Error("agent does not exist: "+agent.host+":"+agent.port));
+			return;
+		}
+		if (err) {
+			logger.error(err.stack);
+			callback(err);
 			return;
 		}
 		logger.info("deleting agent: "+loadedAgent.host+":"+loadedAgent.port);
@@ -312,9 +370,34 @@ exports.deleteAgent = function( agent, callback) {
 
 };
 
+exports.resetAgent = function(agent, eventHandler, serverInfo, callback) {
+	deleteAgent(agent, function(err, oldAgent) {
+		if (err) {
+			callback(err);
+			return;
+		}
+		agent.password=decrypt(agent.passwordEnc,serverInfo.cryptoKey);
+		addAgent(agent, function(err, eventHandler, serverInfo, newAgent) {
+			if (err) {
+				callback(err);
+				return;
+			}
+			callback();
+		
+		});
+	});
+
+}
+
 install = function(main_callback) {
     agent=this.agent;
     serverInfo = this.serverInfo;
+    if (!agent.user && (!agent.password || !agent.passwordEnc) ) {
+    	console.log("AGENT=");
+    	console.log(agent);
+    	main_callback(new Error("agent user and or password are missing: user="+agent.user)+" password=");
+    	return;
+    }
     fileControl.load("InternalRepo:///jobs/agent/installKHAgent.json", function(err,content) {
 			if (err) {
 				main_callback(err);
@@ -327,7 +410,11 @@ install = function(main_callback) {
 				} else {
 					job.script.env.USER=agent.user;
 				}
-				job.script.env.PASSWORD=decrypt(agent.password,serverInfo.cryptoKey);
+				if (agent.passwordEnc) {
+					job.script.env.PASSWORD=decrypt(agent.passwordEnc,serverInfo.cryptoKey);
+				} else if (agent.password) {
+					job.script.env.PASSWORD=agent.password;
+				}
 				job.script.env.HOST=agent.host;
 				if (agent.ip) {
 					job.script.env.HOST=agent.ip;
@@ -365,7 +452,11 @@ startAgent = function(main_callback) {
 				} else {
 					job.script.env.USER=agent.user;
 				}
-				job.script.env.PASSWORD=decrypt(agent.password,this.serverInfo.cryptoKey);
+				if (agent.passwordEnc) {
+					job.script.env.PASSWORD=decrypt(agent.passwordEnc,serverInfo.cryptoKey);
+				} else if (agent.password) {
+					job.script.env.PASSWORD=agent.password;
+				}
 				job.script.env.HOST=agent.host;
 				if (agent.ip) {
 					job.script.env.HOST=agent.ip;
@@ -502,7 +593,7 @@ updateAgentInfoOnAgent = function(callback) {
 	var serverInfo = this.serverInfo
 	var agent = this.agent;
 	agent.encyrptKey = serverInfo.cryptoKey;
-	agent.passwordEnc = agent.password;
+	agent.passwordEnc = agent.passwordEnc;
 	
 	logger.info('updating agent properties on: '+agent.host+':'+agent.port);
 	// prepare the header
@@ -568,7 +659,7 @@ checkAgent = function(callback) {
 	if (agent.port == undefined || agent.port == "") {agent.port=3141;};
 	logger.debug("checking agent user:"+agent.user);
 	db.find({$and: [{user: agent.user}, {port: agent.port}, {host: agent.host}]}, function(err, docs) {
-		logger.debug("found: "+docs.length);
+		logger.debug("check agent found: "+docs.length);
 		if (docs.length > 0) {
 			logger.error('agent: '+agent.user+'@'+agent.host+':'+agent.port+' already exists.');
 			callback(new Error("Agent already exists"));
@@ -653,7 +744,7 @@ deliverAgent = function(callback) {
 	var client = new Client({
 		host: agent.host,
 	    username: agent.login,
-	    password: decrypt(agent.password,this.serverInfo.cryptoKey),
+	    password: decrypt(agent.passwordEnc,this.serverInfo.cryptoKey),
 	    path: '/tmp/'+agent_archive_name
 	});
 
@@ -705,151 +796,156 @@ deliverAgent = function(callback) {
 };
 exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 
-	
-	agent=initAgent(agent,serverInfo);
-	agent.callback = callback;
-	logger.info('adding agent: '+agent.user+'@'+agent.host+':'+agent.port);
-	logger.debug(agent);
-	logger.debug(serverInfo);
-		
-	
-	function_vars = {agent: agent};
-	
-	var exec = [checkAgent.bind(function_vars)
-	     ];
-	async.series(exec,function(err) {
+	if (this.agent)  agent=this.agent;
+	initAgent(agent,serverInfo, function(err, initedAgent) {
 		if (err) {
-			logger.error('agent error' + err);
-			agent.message = ""+err;
-			eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
-			if (agent.callback) {
-				delete agent.callback;
-				callback(err);
-				
-			}
-			return;
-		} else {
+			callback(err);
+		}
+		agent=initedAgent;
+		agent.callback = callback;
+		logger.info('adding agent: '+agent.user+'@'+agent.host+':'+agent.port);
+		logger.debug(agent);
+		logger.debug(serverInfo);
+			
 		
-        
-	    	db.insert(agent, function (err, newDoc) {
-	    		if (err) {
-	    			logger.error(err.message);
-	    			logger.error(err.stack);
-		    		if (agent.callback) {
-		    			delete agent.callback;
-						callback(err);
-						
-					}
-					return;
+		function_vars = {agent: agent};
+		
+		var exec = [checkAgent.bind(function_vars)
+		     ];
+		async.series(exec,function(err) {
+			if (err) {
+				logger.error('agent error' + err);
+				agent.message = ""+err;
+				eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
+				if (agent.callback) {
+					delete agent.callback;
+					callback(err);
+					
 				}
-			    logger.debug("added agent: "+newDoc);
-			    agent=newDoc;
-				
-	
-				var agentDirName = 'knowhow-agent';
-				var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
-				var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
-				install_commands=['rm -rf '+agentExtractedDir,
-								'mkdir -p '+agentExtractedDir,
-				  	          	'tar xzf '+agentArchive+' -C '+agentExtractedDir,
-				  	            'tar xzf '+os.tmpdir()+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
-				  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production --workingDir='+agentExtractedDir+' > /dev/null 2>&1&'
-				  	];
-	
-				function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};
-				var exec = [
-				            //packAgent.bind(function_vars), 
-				            //deliverAgent.bind(function_vars), 
-				            install.bind(function_vars),
-				            startAgent.bind(function_vars),
-				            waitForAgentStartUp.bind(function_vars),
-				            registerServer.bind(function_vars),
-				            updateAgentInfoOnAgent.bind(function_vars),
-				            getStatus.bind(function_vars)];
-				            
-				heartbeat(agent, function(err) {
-					if (!err) {
-						logger.info("Agent already exists");
-						exec = [
-				            waitForAgentStartUp.bind(function_vars),
-				            registerServer.bind(function_vars),
-				            updateAgentInfoOnAgent.bind(function_vars),
-				            getStatus.bind(function_vars)];
-					}
-					async.series(exec,function(err) {
-						if (err) {
-							logger.error('agent error - ' + err);
-							logger.error(err.stack);
-							eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
-							if (agent.callback) {
-								console.log(err.stack);
-								delete agent.callback;
-								callback(err);
-								
-							}
-							return;
-						} else {
-							//set the progress back to 0
-							db.find({_id: agent._id}, function(err, docs) {
-								if (docs.length > 0) {
-									agent = docs[0];
-									agent.status='READY';
-									agent.message=undefined
-									agent.progress =0;
-									eventEmitter.emit('agent-update',agent);
-								}
-								
-							  });
-							if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].eventSocket) {
-								agentEventHandler.listenForAgentEvents(agent, function(err, eventAgent) {
-									if(err) {
-										registeredAgent.status='ERROR'
-										registeredAgent.message='event socket error';
-										agentControl.updateAgent(eventAgent, function() {
-											agentControl.eventEmitter.emit('agent-update',eventAgent);
-										});
-										
-										logger.error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
-										callback(new Error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port));
-										return;
-									}
-									logger.info("receiving events from: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
-									if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].fileSocket) {
-										agentEventHandler.openFileSocket(agent, function(err, registeredAgent) {
-											if(err) {
-												registeredAgent.status='ERROR'
-												registeredAgent.message='file socket error';
-												agentControl.updateAgent(registeredAgent, function() {
-													agentControl.eventEmitter.emit('agent-update',registeredAgent);
-												});
-												logger.error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
-												callback(new Error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port));
-												return;
-											}
-											logger.info("can now upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
-											if (agent.callback) {
-												delete agent.callback;
-												callback(undefined, agent);
-												
-											}
-											console.log("emitting agent-add event for agent: "+agent._id);
-											eventEmitter.emit('agent-add',agent);
-										});
-									}
-								});
-							} 
-							
+				return;
+			} else {
+			
+	        	logger.debug("inserting agent: "+agent.user+"@"+agent.host+":"+agent.port);
+		    	db.insert(agent, function (err, newDoc) {
+		    		if (err) {
+		    			logger.error(err.message);
+		    			logger.error(err.stack);
+			    		if (agent.callback) {
+			    			delete agent.callback;
+							callback(err);
 							
 						}
+						return;
+					}
+				    logger.debug("added agent: "+newDoc._id);
+				    agent=newDoc;
 					
-					});
-
-					
-				});	
-					
-			});
-		}
 		
+					var agentDirName = 'knowhow-agent';
+					var agentArchive = os.tmpdir()+pathlib.sep+agent_archive_name;
+					var agentExtractedDir = os.tmpdir()+pathlib.sep+agent._id;
+					install_commands=['rm -rf '+agentExtractedDir,
+									'mkdir -p '+agentExtractedDir,
+					  	          	'tar xzf '+agentArchive+' -C '+agentExtractedDir,
+					  	            'tar xzf '+os.tmpdir()+pathlib.sep+'node*.tar.gz -C '+agentExtractedDir,
+					  	            'nohup '+agentExtractedDir+pathlib.sep+'node*/bin/node '+agentExtractedDir+pathlib.sep+agentDirName+pathlib.sep+'agent.js --port='+agent.port+' --user='+agent.user+' --login='+agent.login+' --_id='+agent._id+' --mode=production --workingDir='+agentExtractedDir+' > /dev/null 2>&1&'
+					  	];
+		
+					function_vars = {agent: agent, commands: install_commands, serverInfo: serverInfo};
+					var exec = [
+					            //packAgent.bind(function_vars), 
+					            //deliverAgent.bind(function_vars), 
+					            install.bind(function_vars),
+					            startAgent.bind(function_vars),
+					            waitForAgentStartUp.bind(function_vars),
+					            registerServer.bind(function_vars),
+					            updateAgentInfoOnAgent.bind(function_vars),
+					            getStatus.bind(function_vars)];
+					            
+					heartbeat(agent, function(err) {
+						if (!err) {
+							logger.info("Agent already exists");
+							exec = [
+					            waitForAgentStartUp.bind(function_vars),
+					            registerServer.bind(function_vars),
+					            updateAgentInfoOnAgent.bind(function_vars),
+					            getStatus.bind(function_vars)];
+						}
+						async.series(exec,function(err) {
+							if (err) {
+								logger.error('agent error - ' + err);
+								logger.error(err.stack);
+								eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
+								if (agent.callback) {
+									console.log(err.stack);
+									delete agent.callback;
+									callback(err);
+									
+								}
+								return;
+							} else {
+								//set the progress back to 0
+								db.find({_id: agent._id}, function(err, docs) {
+									if (docs.length > 0) {
+										agent = docs[0];
+										agent.status='READY';
+										agent.message=undefined
+										agent.progress =0;
+										eventEmitter.emit('agent-update',agent);
+									}
+									
+								  });
+								if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].eventSocket) {
+									agentEventHandler.listenForAgentEvents(agent, function(err, eventAgent) {
+										if(err) {
+											registeredAgent.status='ERROR'
+											registeredAgent.message='event socket error';
+											agentControl.updateAgent(eventAgent, function() {
+												agentControl.eventEmitter.emit('agent-update',eventAgent);
+											});
+											
+											logger.error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
+											callback(new Error("unable to receive events for: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port));
+											return;
+										}
+										logger.info("receiving events from: "+eventAgent.user+"@"+eventAgent.host+":"+eventAgent.port);
+										if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].fileSocket) {
+											agentEventHandler.openFileSocket(agent, function(err, registeredAgent) {
+												if(err) {
+													registeredAgent.status='ERROR'
+													registeredAgent.message='file socket error';
+													agentControl.updateAgent(registeredAgent, function() {
+														agentControl.eventEmitter.emit('agent-update',registeredAgent);
+													});
+													logger.error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
+													callback(new Error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port));
+													return;
+												}
+												logger.info("can now upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
+												if (agent.callback) {
+													delete agent.callback;
+													callback(undefined, agent);
+													
+												}
+												console.log("emitting agent-add event for agent: "+agent._id);
+												eventEmitter.emit('agent-add',agent);
+											});
+										}
+									});
+								} 
+								
+								
+							}
+						
+						});
+	
+						
+					});	
+						
+				});
+			}
+			
+		});
 	});
 };
 
