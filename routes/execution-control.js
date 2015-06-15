@@ -234,7 +234,7 @@ completeJob = function(agent,job) {
 		 }
 		 job.complete = true;
 		 logger.info("completed.");
-		 eventEmitter.emit('job-complete',agent, job);
+		 //eventEmitter.emit('job-complete',agent, job);
 	 }
 }
 exports.completeJob = completeJob;

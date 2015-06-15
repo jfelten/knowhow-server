@@ -276,6 +276,7 @@ var execute = function(req,res) {
 				}
 				logger.error(jobName+" failed to start.");
 				logger.error(err.message);
+				logger.error(err.stack);
 				res.json(500, {"message": err.message} );
 				return;
 			} else {
