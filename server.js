@@ -16,8 +16,7 @@ fileControl = require('./routes/file-control'),
 AgentEventHandler = require('./routes/agent-events'),
 //http = require('http'),
 path = require('path');
-var agentControl = require('./routes/agent-control');
-var workflowControl = require('./routes/workflow-control');
+
 
 //for stylus style sheets
 function compile(str, path) {
@@ -26,7 +25,7 @@ function compile(str, path) {
 	    .use(nib());
 	};
 
-function configureApp(http, app, api) {	
+function configureApp(http, app, api, workflowControl) {	
 	app.use(express.static(path.join(__dirname, 'public')));
 	app.use(stylus.middleware(
 			  { src: __dirname + '/public/',
@@ -105,6 +104,7 @@ function configureApp(http, app, api) {
 	//agent routes
 	app.post('/api/addAgent', api.addAgent);
 	app.post('/api/deleteAgent', api.deleteAgent);
+	app.post('/api/resetAgent', api.resetAgent);
 	app.post('/api/getAgentInfo', api.getAgentInfo);
 	app.post('/api/logs',api.logs);
 	app.post('/api/agentEvent', api.agentEvent);
@@ -114,9 +114,9 @@ function configureApp(http, app, api) {
 	app.get('/api/runningJobsList', api.runningJobList);
 	
 	//workflow api
-	app.post('/api/loadAgentsForEnvironment', workflowControl.loadAgentsForEnvironment);
-	app.post('/api/initAgents', workflowControl.initAgents);
-	app.post('/api/executeWorkflow', workflowControl.executeWorkflow);
+	app.post('/api/loadAgentsForEnvironment', workflowControl.loadAgentsForEnvironmentAPICall);
+	app.post('/api/initAgents', workflowControl.initAgentsAPICall);
+	app.post('/api/executeWorkflow', workflowControl.executeWorkflowAPICall);
 	
 	//repo urls
 	var API = require('./routes/repository-control').api;
@@ -164,7 +164,7 @@ function configureApp(http, app, api) {
 
 
 //do a heartbeat check each minute and make sure socket connections are made
-var agentCheck = function(agentEventHandler) {
+var agentCheck = function(agentEventHandler, agentControl) {
 	agentControl.listAgents(function (err, agents) {
 		//logger.debug(agents);
 		var agentConnects = new Array(agents.length);
@@ -261,22 +261,26 @@ var KHServer = function(port, callback) {
 	
 	var self = this;
 	
+
+	
 	self.app = express();
 	self.http = require('http').Server(self.app);
 	self.io = require('socket.io')(self.http);
 	self.agentEventHandler = new AgentEventHandler(self.io);
-	agentCheck(self.agentEventHandler);
+	self.agentControl = require('./routes/agent-control');
+	self.executionControl = require('./routes/execution-control');
+	self.workflowControl = require('./routes/workflow-control')(self);
+	agentCheck(self.agentEventHandler, self.agentControl);
 	self.thisServerCheck = function () {
-		agentCheck(self.agentEventHandler);
+		agentCheck(self.agentEventHandler, self.agentControl);
 	}
 	setInterval(self.thisServerCheck,60000);
-	self.api = require('./routes/api.js')(this);
-	configureApp(self.http, self.app, self.api);
-	start(self.http,port,callback);
+	self.api = require('./routes/api.js')(this, function(err, api) {
+		self.api=api;
+		configureApp(self.http, self.app, self.api, self.workflowControl);
+		start(self.http,port,callback);
+	});
 	
-	
-	
-	return self;
 };
 
 module.exports = KHServer;
