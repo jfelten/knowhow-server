@@ -110,8 +110,8 @@ var loadAgentsForEnvironmentAPICall = function(req, res) {
 	var environment = req.body.environment;
 	loadAgentsForEnvironment(environment, this.server.agentEventHandler, this.server.serverInfo, function (err, loadedEnvironment) {
 		if (err) {
-			logger.error(err);
-			res.send(500, err);
+			logger.error(err.stack);
+			res.json(500, {"message": err.message, environment: environment } );
 			return;
 		} else {
 			logger.debug("loaded env: ");
@@ -124,6 +124,7 @@ var loadAgentsForEnvironmentAPICall = function(req, res) {
 loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callback) {
 
 	if (environment.agents) {
+	  	var agentControl = this.server.agentControl;
 		this.environment = environment;
 		console.log("loading "+Object.keys(environment.agents).length+" agents.");
 		console.log(environment.agents);
@@ -139,7 +140,7 @@ loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callb
 						console.log("no agent found for: "+designation);
 						console.log(environment.agents[this.designation]);
 						agentControl.deleteAgent(envAgent, function(err, numRemoved) {
-							agentControl.addAgent(envAgent, eventHandler, serverInfo, function(err, newAgent) {
+							agentControl.addAgent(envAgent, eventHandler, this.server.api.serverInfo, function(err, newAgent) {
 								console.log("added agent found for: "+designation+" "+envAgent.port);
 								if (err) {
 									cb(err);

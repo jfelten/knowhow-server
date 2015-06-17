@@ -237,7 +237,7 @@ function lookupPasswordForUser(userName, callback) {
 			if (doc[0])
 				callback(undefined, doc[0].passwordEnc);
 			else 
-				callback(new Error("unable to find password"));
+				callback(new Error("unable to find password for user: "+userName));
 		}
 	  });
 };
@@ -541,51 +541,56 @@ registerServer = function(callback) {
 	if (!serverInfo) {
 		serverInfo = {};
 	}
-	logger.info('registering this server'+serverInfo.name+':'+serverInfo.port+' to listen for events on: '+agent.host+':'+agent.port);
+	logger.info('registering this server: '+serverInfo.name+':'+serverInfo.port+' to listen for events on: '+agent.host+':'+agent.port);
 	// prepare the header
-	var headers = {
-	    'Content-Type' : 'application/json',
-	    'Content-Length' : Buffer.byteLength(JSON.stringify(serverInfo) , 'utf8'),
-	    'Content-Disposition' : 'form-data; name="serverInfo"'
-	};
-
-	// the post options
-	var options = {
-	    host : agent.host,
-	    port : agent.port,
-	    path : '/api/registerServer',
-	    method : 'POST',
-	    headers : headers
-	};
-
-	// do the POST call
-	var reqPost = http.request(options, function(res) {
-	    console.log("statusCode: ", res.statusCode);
-	    // uncomment it for header details
-	  console.log("headers: ", res.headers);
-
-	    res.on('data', function(data) {
-	    	if (JSON.parse(data).registered) {
-	    		logger.info('server registration complete');
-	    		callback();
-	    	} else {
-	    		agent.message = 'Unable to register server';
-	    		eventEmitter.emit('agent-error',agent);
-	    		callback(new Error('Unable to register server'));
-	    	}
-	        logger.info('server registration complete');
-	    });
-	});
-
-	// write the json data
-	reqPost.write(JSON.stringify(serverInfo));
-	reqPost.end();
-	reqPost.on('error', function(e) {
-	    logger.error("Unable to register server - connection error");
-	    agent.message = 'Unable to register server';
-		eventEmitter.emit('agent-error',agent);
-		callback(e);
-	});
+	try {
+		var headers = {
+		    'Content-Type' : 'application/json',
+		    'Content-Length' : Buffer.byteLength(JSON.stringify(serverInfo) , 'utf8'),
+		    'Content-Disposition' : 'form-data; name="serverInfo"'
+		};
+	
+		// the post options
+		var options = {
+		    host : agent.host,
+		    port : agent.port,
+		    path : '/api/registerServer',
+		    method : 'POST',
+		    headers : headers
+		};
+	
+		// do the POST call
+		var reqPost = http.request(options, function(res) {
+		    console.log("statusCode: ", res.statusCode);
+		    // uncomment it for header details
+		  	//console.log("headers: ", res.headers);
+	
+		    res.on('data', function(data) {
+		    	if (JSON.parse(data).registered) {
+		    		logger.info('server registration complete');
+		    		callback();
+		    	} else {
+		    		agent.message = 'Unable to register server';
+		    		eventEmitter.emit('agent-error',agent);
+		    		callback(new Error('Unable to register server'));
+		    	}
+		        logger.info('server registration complete');
+		    });
+		});
+	
+		// write the json data
+		reqPost.write(JSON.stringify(serverInfo));
+		reqPost.end();
+		reqPost.on('error', function(e) {
+		    logger.error("Unable to register server - connection error");
+		    agent.message = 'Unable to register server';
+			eventEmitter.emit('agent-error',agent);
+			callback(e);
+		});
+	} catch (error ) {
+		callback(error);
+		return;
+	}
 
 };
 
@@ -800,6 +805,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 	initAgent(agent,serverInfo, function(err, initedAgent) {
 		if (err) {
 			callback(err);
+			return;
 		}
 		agent=initedAgent;
 		agent.callback = callback;
