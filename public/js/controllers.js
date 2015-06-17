@@ -582,8 +582,7 @@ var myModule = angular.module('myApp.controllers', []).
 			      method: 'POST',
 			      url: '/api/loadAgentsForEnvironment',
 			      data: data
-			    }).
-			    success(function(data) {
+			    }).success(function(data) {
 			    	console.log(data);
 			    	qs_workflow.watchEnvironment(data);
 			    	var socket = io();
@@ -591,8 +590,14 @@ var myModule = angular.module('myApp.controllers', []).
 				  	qs_workflow.listenForJobEvents($scope, socket);
 				  	qs_workflow.listenForWorkflowEvents($scope, socket);
 				  	$scope.environment = qs_workflow.watchedEnvironment;
-		    });
-	  
+				}).error(function(data) {
+					if (data.message) {
+			    		$scope.env_message = data.message;
+			    	}
+			    	if (data.environment) {
+			    		$scope.environment = data.environment;
+			    	}
+		    	});
 	  }
 	  
 	 $scope.initAgents = function(credentials) {
@@ -612,7 +617,9 @@ var myModule = angular.module('myApp.controllers', []).
 		    success(function(data) {
 		    	$scope.workflow.agents = data;
 		    }).error( function(data) {
-		    	scope.message = data.message
+		    	if (data.message) {
+			    	$scope.env_message = data.message;
+			    }
 		    });
 	  
 	  };
