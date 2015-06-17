@@ -41,43 +41,44 @@
 				tabset
 					tab(ng-show="selectedEnv" heading="{{env_tabs[0].title}}" active="env_tabs[0].active" disabled="env_tabs[0].disabled")
 						.row(ng-show="selectedEnv")
-							.col-md-6.col-lg-6.btn-group
+							.col-md-6.col-lg-6
 								.pull-left
-									.job-message-block(ng-show="env-message")
-										{{env-message}}
-							.row.agent-table-header(ng-show="selectedEnv")
-								.col-md-12.col-lg-12
-									form.form-inline(role="form")
-										form-group
-											label.sr-only(for="login")
-												| Login
-											input(type="text" id="login" name="login" ng-model='credentials.login' placeholder="Enter login*")
-										.form-group
-											.input-group /
-										.form-group
-											label.sr-only(for="password")
-											input(type="password" id="password" name="password" ng-model='credentials.password' placeholder="Enter Password*")
-										.form-group
-											label.sr-only(for="user")
-											input(type="text" id="password" name="password" ng-model='credentials.user' placeholder="Sudo As")
-										
-										.form-group
-											&nbsp;
-											button.btn.btn-primary(ng-click='initAgents(credentials)' ) Init Agents
-							.workflow-env-container
-								.row(ng-repeat="(key, agent) in environment.agents")
-									.col-md-6.col-lg-6
-										i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
-										i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status!='READY'")
+									fsdfsd
+									.job-message-block(ng-show="env_message")
+										{{env_message}}
+						.row.agent-table-header(ng-show="selectedEnv")
+							.col-md-12.col-lg-12
+								form.form-inline(role="form")
+									form-group
+										label.sr-only(for="login")
+											| Login
+										input(type="text" id="login" name="login" ng-model='credentials.login' placeholder="Enter login*")
+									.form-group
+										.input-group /
+									.form-group
+										label.sr-only(for="password")
+										input(type="password" id="password" name="password" ng-model='credentials.password' placeholder="Enter Password*")
+									.form-group
+										label.sr-only(for="user")
+										input(type="text" id="password" name="password" ng-model='credentials.user' placeholder="Sudo As")
+									
+									.form-group
 										&nbsp;
-										a(href="http://{{agent.host}}:{{agent.port}}" target="__blank")
-													{{key}}({{agent.user}}@{{agent.host}}:{{agent.port}})
-									.col-md-3.col-lg-3(ng-show="agent.progress >0")
-										progressbar(animate="agent.progress" value="agent.progress" type="success")
-											{{agent.status}}
-									.col-md-3.col-lg-3(ng-show="agent.job.progress >0")
-										progressbar(animate="agent.job.progress" value="agent.job.progress" type="success")
-											{{agent.job.status}}
+										button.btn.btn-primary(ng-click='initAgents(credentials)' ) Init Agents
+						.workflow-env-container
+							.row(ng-repeat="(key, agent) in environment.agents")
+								.col-md-6.col-lg-6
+									i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
+									i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status!='READY'")
+									&nbsp;
+									a(href="http://{{agent.host}}:{{agent.port}}" target="__blank")
+												{{key}}({{agent.user}}@{{agent.host}}:{{agent.port}})
+								.col-md-3.col-lg-3(ng-show="agent.progress >0")
+									progressbar(animate="agent.progress" value="agent.progress" type="success")
+										{{agent.status}}
+								.col-md-3.col-lg-3(ng-show="agent.job.progress >0")
+									progressbar(animate="agent.job.progress" value="agent.job.progress" type="success")
+										{{agent.job.status}}
 										
 	
 					tab(ng-show="selectedEnvBranch" heading="{{env_tabs[1].title}}" active="env_tabs[1].active" disabled="env_tabs[1].disabled")
