@@ -196,9 +196,32 @@ var resetAgent = function (req, res) {
   } catch (err) {
  	logger.error(err.message);
   	logger.error(err.stack);
+  	res.send(500, {"message": err.message});
   }
   
 
+};
+
+var agentHeartbeat = function(req, res) {
+	var agent = req.body;
+	agentControl.heartbeat.bind({agent: agent})(agent, function(err) {
+		if (!err) {
+			res.send(200, {"alive": true});
+		} else {
+			res.send(500, {"message": err.message});
+		}
+	});
+};
+
+var waitForAgentStartup = function(req, res) {
+	var agent = req.body;
+	agentControl.waitForAgentStartup.bind({agent: agent})(function(err) {
+		if (!err) {
+			res.send(200, {"alive": true});
+		} else {
+			res.send(500, {"message": err.message});
+		}
+	});
 };
 
 var agentEvent = function (req, res) {
@@ -334,6 +357,8 @@ var api = function(server, callback) {
 		this.agentEvent = agentEvent;
 		this.deleteAgent = deleteAgent;
 		this.getAgentInfo = getAgentInfo;
+		this.agentHeartbeat = agentHeartbeat;
+		this.waitForAgentStartup = waitForAgentStartup;
 		this.logs = logs;
 		this.execute = execute.bind({agentControl: server.agentControl, executionControl: server.executionControl});
 		this.cancelJob = cancelJob.bind({executionControl: server.executionControl});;

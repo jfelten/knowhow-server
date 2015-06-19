@@ -100,9 +100,11 @@ updateAgent = function(agent, callback) {
 
 exports.updateAgent = updateAgent;
 
-heartbeat = function(agent, callback) {
-
-	//logger.debug('heartbeat checking status for: '+agent.host);
+var heartbeat = function(agent, callback) {
+	if (this.agent) {
+		agent=this.agent;
+	}
+	//logger.debug('heartbeat checking status for: '+agent.user+'@'+agent.host+':'+agent.port);
 	
 	var options = {
 		    host : agent.host,
@@ -138,7 +140,7 @@ heartbeat = function(agent, callback) {
 	});
 	request.on('error', function(er) {
 		//logger.error(er.stack);
-		logger.error('heartbeat could not connect to agent: '+agent.host,er);
+		logger.error('heartbeat could not connect to agent: '+agent.user+'@'+agent.host+':'+agent.port, er);
 		callback(new Error("unable to connect"),agent);
 	});
 	request.end();
@@ -187,15 +189,15 @@ function loadAgent(agent, callback) {
 			queryParams.$and.push({user: agent.user});
 		}
 		if (agent.port) {
-			queryParams.$or=[{port: +agent.port, port: ""+agent.port}];
+			queryParams.$or=[{port: +agent.port}, {port: ""+agent.port} ];
 		}
 		if (agent.host) {
 			queryParams.$and.push({host: agent.host});
 		}
 	}
 	
-	logger.debug("query agents:");
-	console.log(queryParams);
+	//logger.debug("query agents:");
+	//console.log(queryParams);
 	db.find(queryParams, function(err, doc) {
 		//logger.debug(doc);
 		if (err) {
@@ -205,7 +207,7 @@ function loadAgent(agent, callback) {
 //		docs.forEach(function(agent) {
 //			console.log(agent);
 //		});
-		logger.debug("found: "+doc.length);
+		//logger.debug("found: "+doc.length);
 		if (callback) {
 			callback(undefined, doc[0]);
 		}
@@ -229,10 +231,10 @@ function lookupPasswordForUser(userName, callback) {
 			callback(err);
 			return;
 		}
-		console.log("found "+doc.length);		
-		doc.forEach(function(agent) {
-			console.log(agent);
-		});
+		//console.log("found "+doc.length);		
+		//doc.forEach(function(agent) {
+		//	console.log(agent);
+		//});
 		if (callback) {
 			if (doc[0])
 				callback(undefined, doc[0].passwordEnc);
@@ -280,8 +282,8 @@ initAgent = function(agent, serverInfo, callback) {
 		type: "linux",
 		progress: 1
 	};
-	console.log(serverInfo);
-	console.log(agent_prototype);
+	//console.log(serverInfo);
+	//console.log(agent_prototype);
 	var props = Object.getOwnPropertyNames(agent);
 	props.forEach(function(prop){
 		 agent_prototype[prop]=agent[prop];
@@ -393,8 +395,8 @@ install = function(main_callback) {
     agent=this.agent;
     serverInfo = this.serverInfo;
     if (!agent.user && (!agent.password || !agent.passwordEnc) ) {
-    	console.log("AGENT=");
-    	console.log(agent);
+    	//console.log("AGENT=");
+    	//console.log(agent);
     	main_callback(new Error("agent user and or password are missing: user="+agent.user)+" password=");
     	return;
     }
@@ -561,7 +563,7 @@ registerServer = function(callback) {
 	
 		// do the POST call
 		var reqPost = http.request(options, function(res) {
-		    console.log("statusCode: ", res.statusCode);
+		    //console.log("statusCode: ", res.statusCode);
 		    // uncomment it for header details
 		  	//console.log("headers: ", res.headers);
 	
@@ -619,9 +621,9 @@ updateAgentInfoOnAgent = function(callback) {
 
 	// do the POST call
 	var reqPost = http.request(options, function(res) {
-	    console.log("statusCode: ", res.statusCode);
+	    //console.log("statusCode: ", res.statusCode);
 	    // uncomment it for header details
-	  console.log("headers: ", res.headers);
+	  //console.log("headers: ", res.headers);
 
 	    res.on('data', function(data) {
 	    	try {
@@ -714,10 +716,11 @@ exports.packAgent = function(callback) {
 
 
 
-waitForAgentStartUp = function(callback) {
-	
-	
+var waitForAgentStartup = function(callback) {
 	var agent = this.agent;
+	logger.debug("waiting for agent: "+agent.user+'@'+agent.host+':'+agent.port);
+	console.log(this.agent);
+	
     agent.message = 'starting agent';
     eventEmitter.emit('agent-update', agent);
     //timeout after 40 secs
@@ -729,16 +732,20 @@ waitForAgentStartUp = function(callback) {
     
     
     //wait until a heartbeat is received
-    var heartbeatCheck = setInterval(function() {
-    	heartbeat(agent, function (err) {
+    var heartbeatCheck = setInterval.bind({agent: agent})(function() {
+    	var heartbeat2 = heartbeat;
+    	//console.log(this.agent);
+    	heartbeat2(this.agent, function (err) {
     		if (!err) {
     			clearTimeout(timeout);
     			clearInterval(heartbeatCheck);
     			callback();
     		}
-    	});
+    	}.bind({agent: agent}));
     }, 500);
 };
+
+exports.waitForAgentStartup = waitForAgentStartup;
 
 deliverAgent = function(callback) {
     var agent = this.agent;
@@ -799,6 +806,7 @@ deliverAgent = function(callback) {
 	});
 
 };
+
 exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 
 	if (this.agent)  agent=this.agent;
@@ -863,7 +871,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 					            //deliverAgent.bind(function_vars), 
 					            install.bind(function_vars),
 					            startAgent.bind(function_vars),
-					            waitForAgentStartUp.bind(function_vars),
+					            waitForAgentStartup.bind(function_vars),
 					            registerServer.bind(function_vars),
 					            updateAgentInfoOnAgent.bind(function_vars),
 					            getStatus.bind(function_vars)];
@@ -872,7 +880,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 						if (!err) {
 							logger.info("Agent already exists");
 							exec = [
-					            waitForAgentStartUp.bind(function_vars),
+					            waitForAgentStartup.bind(function_vars),
 					            registerServer.bind(function_vars),
 					            updateAgentInfoOnAgent.bind(function_vars),
 					            getStatus.bind(function_vars)];
@@ -883,7 +891,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 								logger.error(err.stack);
 								eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
 								if (agent.callback) {
-									console.log(err.stack);
+									logger.error(err.stack);
 									delete agent.callback;
 									callback(err);
 									
@@ -933,7 +941,7 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 													callback(undefined, agent);
 													
 												}
-												console.log("emitting agent-add event for agent: "+agent._id);
+												//console.log("emitting agent-add event for agent: "+agent._id);
 												eventEmitter.emit('agent-add',agent);
 											});
 										}
