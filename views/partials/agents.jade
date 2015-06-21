@@ -30,17 +30,20 @@
 					button.btn.btn-primary(ng-click='addAgent(agent)' ) Add Agent
 
 	.row(ng-repeat="agent in connectedAgents")
-		.col-md-4.col-lg-4
-			i.glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) &nbsp;
+		.col-md-2.col-lg-2
+			i(title="refresh agent").glyphicon.glyphicon-refresh(ng-show="agent.status =='READY' || agent.status =='ERROR'" ng-click='refreshAgent(agent)' ) &nbsp;
+			i(title="delete agent").glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) &nbsp;
 			i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
 			i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status=='ERROR'")
 			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")  
-			| &nbsp;
+			span(ng-show="agent.version")
+				&nbsp;({{agent.version}})
+		.col-md-3.col-lg-3.pull-left
 			a(href="http://{{agent.host}}:{{agent.port}}" target="__blank") 
 				{{agent.user}}@{{agent.host}}:{{agent.port}} 
-			| &nbsp; {{agent.message}}
-		.col-md-6.col-lg-6
+		.col-md-5.col-lg-5
 			span.pull-left
+				| {{agent.message}}
 				progressbar(ng-hide="!agent.progress || agent.progress < 1" animate="agent.progress" value="agent.progress" type="success")
 					{{agent.status}}
 	script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js')
