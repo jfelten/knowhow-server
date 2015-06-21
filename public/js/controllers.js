@@ -87,9 +87,19 @@ var myModule = angular.module('myApp.controllers', []).
         });
     };
     
-    $scope.deleteAgent = function (agent_id) {
+    $scope.deleteAgent = function (agent) {
     	$scope.message = undefined;
-    	$http.post('/api/deleteAgent', agent_id).
+    	$http.post('/api/deleteAgent', agent).
+        success(function(data) {
+        	$scope.connectedAgents = data;
+        	//location.reload(); 
+        });
+    };
+    
+    $scope.refreshAgent = function (agent) {
+    	console.log(agent);
+    	$scope.message = undefined;
+    	$http.post('/api/resetAgent', agent).
         success(function(data) {
         	$scope.connectedAgents = data;
         	//location.reload(); 
