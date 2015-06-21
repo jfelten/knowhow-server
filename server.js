@@ -106,6 +106,8 @@ function configureApp(http, app, api, workflowControl) {
 	app.post('/api/deleteAgent', api.deleteAgent);
 	app.post('/api/resetAgent', api.resetAgent);
 	app.post('/api/getAgentInfo', api.getAgentInfo);
+	app.post('/api/agentHeartbeat', api.agentHeartbeat);
+	app.post('/api/waitForAgentStartup', api.waitForAgentStartup);
 	app.post('/api/logs',api.logs);
 	app.post('/api/agentEvent', api.agentEvent);
 	app.get('/api/agentEvent', api.agentEvent);
