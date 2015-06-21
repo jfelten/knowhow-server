@@ -185,7 +185,7 @@ var resetAgent = function (req, res) {
   var agent = req.body;
   
   try {
-	  agentControl.resetAgent(agent, this.agentEventHandler, getServerInfo(), function(err, newAgent) {
+	  agentControl.resetAgent(agent, this.agentEventHandler, this.serverInfo, function(err, newAgent) {
 	  	if (err) {
 	  		res.send(500, {"message": err.message});
 	  		return;
