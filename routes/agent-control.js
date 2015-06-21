@@ -74,10 +74,16 @@ addDefaultAgent = function(username,callback) {
 
 exports.addDefaultAgent = addDefaultAgent;
 
-updateAgent = function(agent, callback) {
+var updateAgent = function(agent, callback) {
 	loadAgent(agent, function(err, loadedAgent) {
 		if (!loadedAgent) {
 			loadedAgent = agent;
+		} else {
+			var props = Object.getOwnPropertyNames(agent);
+			props.forEach(function(prop){
+				 logger.debug('updateAgent: updating property: agent.'+prop);
+				 loadedAgent[prop]=agent[prop];
+			});
 		}
 		if (agent.message) {
 			loadedAgent.message = agent.message;
@@ -88,11 +94,11 @@ updateAgent = function(agent, callback) {
 		if (agent.progress) {
 			loadedAgent.progress = agent.progress;
 		}
-		db.update({ '_id': loadedAgent._id}, agent, function(err,docs) {
+		db.update({ '_id': loadedAgent._id}, loadedAgent, function(err,docs) {
 			if(err) {
 				callback(err);
 			} else if (callback) {
-				callback(err,docs[0]);
+				callback(undefined,docs[0]);
 			}
 		});
 	});
@@ -313,7 +319,7 @@ initAgent = function(agent, serverInfo, callback) {
 	return agent_prototype;
 };
 
-exports.deleteAgent = function( agent, callback) {
+var deleteAgent = function( agent, callback) {
 	loadAgent( agent, function(err, loadedAgent) {
 		if (!loadedAgent) {
 			//agent.message = 'agent does not exist';
@@ -371,15 +377,19 @@ exports.deleteAgent = function( agent, callback) {
 	});
 
 };
+exports.deleteAgent = deleteAgent;
 
 exports.resetAgent = function(agent, eventHandler, serverInfo, callback) {
+	agent.progress=1;
+	agent.status='INSTALLING'
+	eventEmitter.emit('agent-update', agent);
 	deleteAgent(agent, function(err, oldAgent) {
 		if (err) {
 			callback(err);
 			return;
 		}
 		agent.password=decrypt(agent.passwordEnc,serverInfo.cryptoKey);
-		addAgent(agent, function(err, eventHandler, serverInfo, newAgent) {
+		addAgent(agent, eventHandler, serverInfo, function(err, newAgent) {
 			if (err) {
 				callback(err);
 				return;
@@ -624,23 +634,33 @@ updateAgentInfoOnAgent = function(callback) {
 	    //console.log("statusCode: ", res.statusCode);
 	    // uncomment it for header details
 	  //console.log("headers: ", res.headers);
+		var output = '';
+        //logger.debug(options.host + ' ' + res.statusCode);
+        res.setEncoding('utf8');
 
-	    res.on('data', function(data) {
-	    	try {
-		    	if (JSON.parse(data).registered) {
-		    		logger.info('updated agent properties');
-		    		callback();
-		    	} else {
-		    		agent.message = 'Unable to update agent properties';
-		    		eventEmitter.emit('agent-error',agent);
-		    		callback(new Error('Unable to update agent properties'));
-		    	}
-		        logger.info('update agent complete');
+        res.on('data', function (chunk) {
+            output += chunk;
+        });
+
+        res.on('end', function() {
+        	try {
+	    		var agentData = JSON.parse(output);
+	    		updateAgent(agentData, function(err, updatedAgent) {
+	    			if (err) {
+	    				callback(new Error("unable to update agent"));
+	    				return;
+	    			}
+	    			logger.info('update agent complete');
+	    			callback();
+	    		});
+	    		
+		        
 		    } catch (err) {
 		    	logger.error(err.stack);
 		    	callback(err);
 		    }
-	    });
+            
+        });
 	});
 
 	// write the json data
@@ -719,7 +739,6 @@ exports.packAgent = function(callback) {
 var waitForAgentStartup = function(callback) {
 	var agent = this.agent;
 	logger.debug("waiting for agent: "+agent.user+'@'+agent.host+':'+agent.port);
-	console.log(this.agent);
 	
     agent.message = 'starting agent';
     eventEmitter.emit('agent-update', agent);
@@ -733,15 +752,13 @@ var waitForAgentStartup = function(callback) {
     
     //wait until a heartbeat is received
     var heartbeatCheck = setInterval.bind({agent: agent})(function() {
-    	var heartbeat2 = heartbeat;
-    	//console.log(this.agent);
-    	heartbeat2(this.agent, function (err) {
+    	heartbeat.call({agent: agent}, agent, function (err) {
     		if (!err) {
     			clearTimeout(timeout);
     			clearInterval(heartbeatCheck);
     			callback();
     		}
-    	}.bind({agent: agent}));
+    	});
     }, 500);
 };
 
@@ -807,7 +824,7 @@ deliverAgent = function(callback) {
 
 };
 
-exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
+var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 
 	if (this.agent)  agent=this.agent;
 	initAgent(agent,serverInfo, function(err, initedAgent) {
@@ -873,8 +890,9 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 					            startAgent.bind(function_vars),
 					            waitForAgentStartup.bind(function_vars),
 					            registerServer.bind(function_vars),
-					            updateAgentInfoOnAgent.bind(function_vars),
-					            getStatus.bind(function_vars)];
+					            updateAgentInfoOnAgent.bind(function_vars)
+					            //getStatus.bind(function_vars)
+					            ];
 					            
 					heartbeat(agent, function(err) {
 						if (!err) {
@@ -882,8 +900,9 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 							exec = [
 					            waitForAgentStartup.bind(function_vars),
 					            registerServer.bind(function_vars),
-					            updateAgentInfoOnAgent.bind(function_vars),
-					            getStatus.bind(function_vars)];
+					            updateAgentInfoOnAgent.bind(function_vars)
+					            //getStatus.bind(function_vars)
+					            ];
 						}
 						async.series(exec,function(err) {
 							if (err) {
@@ -963,6 +982,8 @@ exports.addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 	});
 };
 
+exports.addAgent = addAgent;
+
 function encrypt(text, cryptoKey){
 	var cipher = crypto.createCipher('aes-256-cbc',cryptoKey)
 	var crypted = cipher.update(text,'utf8','hex')
@@ -971,7 +992,7 @@ function encrypt(text, cryptoKey){
 }
  
 function decrypt(text, cryptoKey){
-	console.log("deciphering: "+text+" with key: "+cryptoKey);
+	//console.log("deciphering: "+text+" with key: "+cryptoKey);
 	var decipher = crypto.createDecipher('aes-256-cbc',cryptoKey)
 	var dec = decipher.update(text,'hex','utf8')
 	dec += decipher.final('utf8');
