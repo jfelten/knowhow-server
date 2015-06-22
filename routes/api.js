@@ -214,8 +214,8 @@ var agentHeartbeat = function(req, res) {
 };
 
 var waitForAgentStartup = function(req, res) {
-	var agent = req.body;
-	agentControl.waitForAgentStartup.bind({agent: agent})(function(err) {
+	var agent = req.body.agent;
+	agentControl.waitForAgentStartup.call({agent: agent}, function(err) {
 		if (!err) {
 			res.send(200, {"alive": true});
 		} else {

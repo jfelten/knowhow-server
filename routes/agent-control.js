@@ -20,7 +20,7 @@ var executionControl = require('./execution-control');
 var KnowhowShell = require('knowhow-shell');
 //var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
 //var ttyPool = new require('../../knowhow-shell/tty-pool')(2,10);
-var ttyPool = new require('knowhow-shell/tty-pool')(2,10);
+//var ttyPool = new require('knowhow-shell/tty-pool')(2,10);
 var KHShell = new KnowhowShell(eventEmitter)
 
 //deliver the agent files
@@ -81,7 +81,7 @@ var updateAgent = function(agent, callback) {
 		} else {
 			var props = Object.getOwnPropertyNames(agent);
 			props.forEach(function(prop){
-				 logger.debug('updateAgent: updating property: agent.'+prop);
+				 //logger.debug('updateAgent: updating property: agent.'+prop);
 				 loadedAgent[prop]=agent[prop];
 			});
 		}
@@ -202,10 +202,10 @@ function loadAgent(agent, callback) {
 		}
 	}
 	
-	//logger.debug("query agents:");
-	//console.log(queryParams);
+	logger.debug("query agents:");
+	console.log(queryParams);
 	db.find(queryParams, function(err, doc) {
-		//logger.debug(doc);
+		logger.debug(doc);
 		if (err) {
 			callback(err);
 			return;
@@ -213,7 +213,7 @@ function loadAgent(agent, callback) {
 //		docs.forEach(function(agent) {
 //			console.log(agent);
 //		});
-		//logger.debug("found: "+doc.length);
+		logger.debug("found: "+doc.length);
 		if (callback) {
 			callback(undefined, doc[0]);
 		}
@@ -367,7 +367,7 @@ var deleteAgent = function( agent, callback) {
 	        });
 		});
 		request.on('error', function(er) {
-			logger.error('no agent running on: '+agent.host,er);
+			logger.error('no agent running on: '+loadedAgent.user+'@'+loadedAgent.host+':'+loadedAgent.port,er);
 			db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
 	    		callback(err, numRemoved);
 	    		eventEmitter.emit('agent-delete',loadedAgent);
@@ -383,19 +383,24 @@ exports.resetAgent = function(agent, eventHandler, serverInfo, callback) {
 	agent.progress=1;
 	agent.status='INSTALLING'
 	eventEmitter.emit('agent-update', agent);
-	deleteAgent(agent, function(err, oldAgent) {
-		if (err) {
-			callback(err);
-			return;
-		}
-		agent.password=decrypt(agent.passwordEnc,serverInfo.cryptoKey);
-		addAgent(agent, eventHandler, serverInfo, function(err, newAgent) {
+	loadAgent(agent, function(error, loadedAgent) {
+		deleteAgent(loadedAgent, function(err, oldAgent) {
 			if (err) {
 				callback(err);
 				return;
 			}
-			callback();
-		
+			delete loadedAgent._id;
+			if (loadedAgent.passwordEnc && serverInfo && serverInfo.cryptoKey) {
+				loadedAgent.password=decrypt(loadedAgent.passwordEnc,serverInfo.cryptoKey);
+			}
+			addAgent(loadedAgent, eventHandler, serverInfo, function(err, newAgent) {
+				if (err) {
+					callback(err);
+					return;
+				}
+				callback();
+			
+			});
 		});
 	});
 
@@ -438,7 +443,7 @@ install = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			KHShell.executeJobWithPool(ttyPool,job,function(err) {
+			KHShell.executeJobAsSubProcess(job,function(err) {
 				if (err) {
 					main_callback(err);
 				} else {
@@ -480,7 +485,7 @@ startAgent = function(main_callback) {
 				main_callback(err);
 				return;
 			}
-			KHShell.executeJobWithPool(ttyPool,job,function(err) {
+			KHShell.executeJobAsSubProcess(job,function(err) {
 				if (err) {
 					main_callback(err);
 				} else {
@@ -738,6 +743,7 @@ exports.packAgent = function(callback) {
 
 var waitForAgentStartup = function(callback) {
 	var agent = this.agent;
+	console.log(this);
 	logger.debug("waiting for agent: "+agent.user+'@'+agent.host+':'+agent.port);
 	
     agent.message = 'starting agent';
@@ -992,7 +998,7 @@ function encrypt(text, cryptoKey){
 }
  
 function decrypt(text, cryptoKey){
-	//console.log("deciphering: "+text+" with key: "+cryptoKey);
+	logger.debug("deciphering: "+text+" with key: "+cryptoKey);
 	var decipher = crypto.createDecipher('aes-256-cbc',cryptoKey)
 	var dec = decipher.update(text,'hex','utf8')
 	dec += decipher.final('utf8');
