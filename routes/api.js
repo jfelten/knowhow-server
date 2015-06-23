@@ -163,9 +163,11 @@ var addAgent = function (req, res) {
   try {
 	  agentControl.addAgent(agent, this.agentEventHandler, getServerInfo(), function(err, newAgent) {
 	  	if (err) {
+	  		logger.error("error adding agent "+err.message);
 	  		res.send(500, {"message": err.message});
 	  		return;
 	  	} else {
+	  		logger.info("added agent: "+newAgent.user+"@"+newAgent.host+":"+newAgent.port);
 		  	res.json(newAgent);
 		}
 	  });
@@ -203,7 +205,7 @@ var resetAgent = function (req, res) {
 };
 
 var agentHeartbeat = function(req, res) {
-	var agent = req.body;
+	var agent = req.body.agent;
 	agentControl.heartbeat.bind({agent: agent})(agent, function(err) {
 		if (!err) {
 			res.send(200, {"alive": true});

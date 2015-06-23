@@ -202,8 +202,8 @@ function loadAgent(agent, callback) {
 		}
 	}
 	
-	logger.debug("query agents:");
-	console.log(queryParams);
+	//logger.debug("query agents:");
+	//console.log(queryParams);
 	db.find(queryParams, function(err, doc) {
 		logger.debug(doc);
 		if (err) {
@@ -308,6 +308,7 @@ initAgent = function(agent, serverInfo, callback) {
 		lookupPasswordForUser(agent_prototype.user, function(err, password) {
 			if (err && callback) {
 				callback(err);
+				return;
 			}
 			agent_prototype.passwordEnc=password;
 			if (callback) {
@@ -316,10 +317,15 @@ initAgent = function(agent, serverInfo, callback) {
 			logger.info("initialized agent with password: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
 		});
 	} 
+	delete agent_prototype._id;
 	return agent_prototype;
 };
 
 var deleteAgent = function( agent, callback) {
+	if (!agent) {
+		callback(new Error("deleteAgent: no agent provided"));
+		return;
+	}
 	loadAgent( agent, function(err, loadedAgent) {
 		if (!loadedAgent) {
 			//agent.message = 'agent does not exist';
@@ -367,9 +373,13 @@ var deleteAgent = function( agent, callback) {
 	        });
 		});
 		request.on('error', function(er) {
-			logger.error('no agent running on: '+loadedAgent.user+'@'+loadedAgent.host+':'+loadedAgent.port,er);
+			logger.error('no agent running on: '+loadedAgent.user+'@'+loadedAgent.host+':'+loadedAgent.port+" "+er.message);
 			db.remove({ _id: loadedAgent._id }, {}, function (err, numRemoved) {
-	    		callback(err, numRemoved);
+				if (err) {
+					logger.error(err.stack);
+				}
+				logger.info("removed agent " +loadedAgent.user+'@'+loadedAgent.host+':'+loadedAgent.port+" num removed="+numRemoved);
+	    		//callback(err, numRemoved);
 	    		eventEmitter.emit('agent-delete',loadedAgent);
 	      	});
 		});
@@ -384,6 +394,7 @@ exports.resetAgent = function(agent, eventHandler, serverInfo, callback) {
 	agent.status='INSTALLING'
 	eventEmitter.emit('agent-update', agent);
 	loadAgent(agent, function(error, loadedAgent) {
+		//console.log("reset loaded agent");
 		deleteAgent(loadedAgent, function(err, oldAgent) {
 			if (err) {
 				callback(err);
@@ -743,7 +754,7 @@ exports.packAgent = function(callback) {
 
 var waitForAgentStartup = function(callback) {
 	var agent = this.agent;
-	console.log(this);
+	//console.log(this);
 	logger.debug("waiting for agent: "+agent.user+'@'+agent.host+':'+agent.port);
 	
     agent.message = 'starting agent';
@@ -919,7 +930,6 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 									logger.error(err.stack);
 									delete agent.callback;
 									callback(err);
-									
 								}
 								return;
 							} else {
