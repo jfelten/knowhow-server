@@ -340,7 +340,9 @@ function AgentEventHandler(io) {
 		if (job && agent) {
 			logger.info("sending cancel for "+job.id+' on agent('+agent._id+'): '+agent.user+'@'+agent.host+':'+agent.port);
 			//console.log(agentSockets);
-			agentSockets[agent._id].eventSocket.emit('job-cancel',job);
+			if (agentSockets[agent._id] && agentSockets[agent._id].eventSocket) {
+				agentSockets[agent._id].eventSocket.emit('job-cancel',job);
+			}
 		 } else {
 		 	logger.error("invalid job error event");
 		 }
