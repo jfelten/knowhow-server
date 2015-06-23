@@ -135,11 +135,16 @@ var heartbeat = function(agent, callback) {
 
         res.on('end', function() {
         	//logger.info("done.");
-            //obj = JSON.parse(output);
-        	//logger.debug("agent status check: "+obj.status);
-        	agent.progress=0;
-        	agent.message='';        
-        	callback(undefined, agent);
+            obj = JSON.parse(output);
+            console.log(output);
+        	logger.debug("agent status check: "+obj.status);
+        	if (obj.status == 'READY') {
+        		agent.progress=0;
+        		agent.message='';        
+        		callback(undefined, agent);
+        	} else {
+        		callback(new Error("unable to connect"),agent);
+        	}
             
         });
         //res.end();
@@ -166,8 +171,16 @@ function listAgents(callback) {
 //		docs.forEach(function(agent) {
 //			console.log(agent);
 //		});
+		var agentSort = function (agent1, agent2) {
+			var agentName1 = agent1.host+agent1.port+agent1.user;
+			var agentName2 = agent2.host+agent2.port+agent2.user
+		    return (agentName1 > agentName2);
+		}
+
+
+		var result = docs.sort(agentSort);
 		if (callback) {
-			callback(undefined, docs);
+			callback(undefined, result);
 		}
 	  });
 };
@@ -284,7 +297,7 @@ initAgent = function(agent, serverInfo, callback) {
 		host: "",
 		user: serverInfo.username,
 		port: 3141,
-		status: "unknown",
+		status: "READY",
 		type: "linux",
 		progress: 1
 	};
@@ -326,7 +339,9 @@ var deleteAgent = function( agent, callback) {
 		callback(new Error("deleteAgent: no agent provided"));
 		return;
 	}
+	var gotResponse = false;
 	loadAgent( agent, function(err, loadedAgent) {
+		
 		if (!loadedAgent) {
 			//agent.message = 'agent does not exist';
 			//eventEmitter.emit('agent-error',agent);
@@ -350,6 +365,7 @@ var deleteAgent = function( agent, callback) {
 			    }
 			};
 		var request = http.request(options, function(response) {
+			gotResponse = true;
 			logger.debug("processing delete response: ");
 			
 			var output = '';
@@ -379,7 +395,10 @@ var deleteAgent = function( agent, callback) {
 					logger.error(err.stack);
 				}
 				logger.info("removed agent " +loadedAgent.user+'@'+loadedAgent.host+':'+loadedAgent.port+" num removed="+numRemoved);
-	    		//callback(err, numRemoved);
+	    		
+	    		if (!gotResponse) {
+	    			callback(new Error("unable to contact agent, but removed from internal database."));
+	    		}
 	    		eventEmitter.emit('agent-delete',loadedAgent);
 	      	});
 		});
@@ -394,11 +413,14 @@ exports.resetAgent = function(agent, eventHandler, serverInfo, callback) {
 	agent.status='INSTALLING'
 	eventEmitter.emit('agent-update', agent);
 	loadAgent(agent, function(error, loadedAgent) {
-		//console.log("reset loaded agent");
+		if (!loadedAgent) {
+			loadedAgent = agent;
+		}
+		console.log("reset loaded agent");
 		deleteAgent(loadedAgent, function(err, oldAgent) {
 			if (err) {
-				callback(err);
-				return;
+				//callback(err);
+				//return;
 			}
 			delete loadedAgent._id;
 			if (loadedAgent.passwordEnc && serverInfo && serverInfo.cryptoKey) {
@@ -475,7 +497,7 @@ startAgent = function(main_callback) {
 			}
 			try {
 				job = JSON.parse(content);
-				if (agent.login) {
+				if (agent.login && !agent.user) {
 					job.script.env.USER=agent.login;
 				} else {
 					job.script.env.USER=agent.user;
@@ -555,6 +577,7 @@ getStatus = function(callback) {
         //res.end();
 	});
 	request.on('error', function(er) {
+		console.error(er);
 		logger.error('no agent running on agent: '+agent.host,er);
 		
 		if (callback) callback();
@@ -625,6 +648,7 @@ registerServer = function(callback) {
 updateAgentInfoOnAgent = function(callback) {
 	var serverInfo = this.serverInfo
 	var agent = this.agent;
+	agent.status='READY';
 	agent.encyrptKey = serverInfo.cryptoKey;
 	agent.passwordEnc = agent.passwordEnc;
 	
@@ -842,9 +866,9 @@ deliverAgent = function(callback) {
 };
 
 var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
-
-	if (this.agent)  agent=this.agent;
+	
 	initAgent(agent,serverInfo, function(err, initedAgent) {
+		
 		if (err) {
 			callback(err);
 			return;
@@ -863,7 +887,7 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 		async.series(exec,function(err) {
 			if (err) {
 				logger.error('agent error' + err);
-				agent.message = ""+err;
+				agent.message = ""+err.message;
 				eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
 				if (agent.callback) {
 					delete agent.callback;
@@ -878,6 +902,8 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 		    		if (err) {
 		    			logger.error(err.message);
 		    			logger.error(err.stack);
+		    			agent.message = ""+err.message;
+				 		eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
 			    		if (agent.callback) {
 			    			delete agent.callback;
 							callback(err);
@@ -885,6 +911,9 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 						}
 						return;
 					}
+					agent.message = "installing on agent";
+					agent.status = "INSTALLING";
+					eventEmitter.emit('agent-update',agent);
 				    logger.debug("added agent: "+newDoc._id);
 				    agent=newDoc;
 					
@@ -911,7 +940,7 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 					            //getStatus.bind(function_vars)
 					            ];
 					            
-					heartbeat(agent, function(err) {
+					heartbeat.call({agent: agent},agent, function(err) {
 						if (!err) {
 							logger.info("Agent already exists");
 							exec = [
@@ -923,6 +952,9 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 						}
 						async.series(exec,function(err) {
 							if (err) {
+								agent.message = ""+err.message;
+								agent.status='ERROR';
+				 				eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
 								logger.error('agent error - ' + err);
 								logger.error(err.stack);
 								eventEmitter.emit('agent-error',agent,err.syscall+" "+err.code);
@@ -933,12 +965,16 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 								}
 								return;
 							} else {
+								agent.status='READY';
+								agent.message=''
+								agent.progress =0;
+								eventEmitter.emit('agent-update',agent);
 								//set the progress back to 0
 								db.find({_id: agent._id}, function(err, docs) {
 									if (docs.length > 0) {
 										agent = docs[0];
 										agent.status='READY';
-										agent.message=undefined
+										agent.message=''
 										agent.progress =0;
 										eventEmitter.emit('agent-update',agent);
 									}
@@ -947,8 +983,8 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 								if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[agent._id] || !agentEventHandler.agentSockets[agent._id].eventSocket) {
 									agentEventHandler.listenForAgentEvents(agent, function(err, eventAgent) {
 										if(err) {
-											registeredAgent.status='ERROR'
-											registeredAgent.message='event socket error';
+											eventAgent.status='ERROR'
+											eventAgentmessage='event socket error';
 											agentControl.updateAgent(eventAgent, function() {
 												agentControl.eventEmitter.emit('agent-update',eventAgent);
 											});
@@ -977,6 +1013,8 @@ var addAgent = function(agent,agentEventHandler,serverInfo,callback) {
 													
 												}
 												//console.log("emitting agent-add event for agent: "+agent._id);
+												agent.status='READY';
+												agent.message="";
 												eventEmitter.emit('agent-add',agent);
 											});
 										}

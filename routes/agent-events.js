@@ -264,7 +264,7 @@ function AgentEventHandler(io) {
 		}
 	});
 	agentControl.eventEmitter.on('agent-add', function(agent) {
-		agent.status='INSTALLING';
+		agent.status='READY';
 		try {
 			io.emit('agent-add',agent);
 		} catch (err) {

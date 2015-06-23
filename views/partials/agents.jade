@@ -10,9 +10,9 @@
 		.col-md-12.col-lg-12 		
 			form.form-inline(role="form")
 				.form-group
-					label.sr-only.control-label(for="login")
+					label.sr-only.control-label(for="user")
 						| Login
-					input(type="text" id="login" name="login" ng-model='agent.login' placeholder="Enter login*")
+					input(type="text" id="user" name="user" ng-model='agent.user' placeholder="Enter user*")
 				.input-group /
 				.form-group
 					label.sr-only.control-label(for="password")
@@ -31,11 +31,12 @@
 
 	.row(ng-repeat="agent in connectedAgents")
 		.col-md-2.col-lg-2
-			i(title="refresh agent").glyphicon.glyphicon-refresh(ng-show="agent.status =='READY' || agent.status =='ERROR'" ng-click='refreshAgent(agent)' ) &nbsp;
+			i(title="refresh agent").glyphicon.glyphicon-refresh(ng-show="agent.status =='READY' || agent.status =='ERROR'" ng-click='refreshAgent(agent)' )
+			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")
+			&nbsp;
 			i(title="delete agent").glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) &nbsp;
 			i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
 			i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status=='ERROR'")
-			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")  
 			span(ng-show="agent.version")
 				&nbsp;({{agent.version}})
 		.col-md-3.col-lg-3.pull-left
@@ -44,7 +45,6 @@
 		.col-md-5.col-lg-5
 			span.pull-left
 				| {{agent.message}}
-				progressbar(ng-hide="!agent.progress || agent.progress < 1" animate="agent.progress" value="agent.progress" type="success")
-					{{agent.status}}
+
 	script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js')
 	script(src='http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js')

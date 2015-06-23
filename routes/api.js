@@ -11,7 +11,6 @@ var username = require('username');
  * Serve JSON to our AngularJS client
  */
 
-exports.agentControl = agentControl;
 var startTime = moment().format('MMMM Do YYYY, h:mm:ss a');
 
 
@@ -161,7 +160,8 @@ var addAgent = function (req, res) {
   var agent = req.body;
   
   try {
-	  agentControl.addAgent(agent, this.agentEventHandler, getServerInfo(), function(err, newAgent) {
+  	  var agentControl = require('./agent-control');
+	  agentControl.addAgent(agent, this.agentEventHandler, this.serverInfo, function(err, newAgent) {
 	  	if (err) {
 	  		logger.error("error adding agent "+err.message);
 	  		res.send(500, {"message": err.message});
@@ -187,6 +187,7 @@ var resetAgent = function (req, res) {
   var agent = req.body;
   
   try {
+  	  var agentControl = require('./agent-control');
 	  agentControl.resetAgent(agent, this.agentEventHandler, this.serverInfo, function(err, newAgent) {
 	  	if (err) {
 	  		res.send(500, {"message": err.message});
@@ -206,6 +207,7 @@ var resetAgent = function (req, res) {
 
 var agentHeartbeat = function(req, res) {
 	var agent = req.body.agent;
+	var agentControl = require('./agent-control');
 	agentControl.heartbeat.bind({agent: agent})(agent, function(err) {
 		if (!err) {
 			res.send(200, {"alive": true});
@@ -217,6 +219,7 @@ var agentHeartbeat = function(req, res) {
 
 var waitForAgentStartup = function(req, res) {
 	var agent = req.body.agent;
+	var agentControl = require('./agent-control');
 	agentControl.waitForAgentStartup.call({agent: agent}, function(err) {
 		if (!err) {
 			res.send(200, {"alive": true});
@@ -232,7 +235,7 @@ var agentEvent = function (req, res) {
 		  logger.debug(params[i]);
 	  }
 	  var agent = req.body;
-	  agentControl.eventEmitter.emit('agent-update',agent);
+	  this.eventEmitter.emit('agent-update',agent);
 	  
 	  res.json({ok:true});
 
@@ -243,6 +246,7 @@ var deleteAgent = function (req, res) {
 
 	  var agent = req.body;
 	  console.log(agent);
+	  var agentControl = require('./agent-control');
 	  agentControl.deleteAgent(agent, function(err, numdeleted) {
 	  	if (err) {
 	  		res.send(500, err);
@@ -267,6 +271,7 @@ var deleteAgent = function (req, res) {
 var getAgentInfo = function(req,res) {
 
 	var agent = req.body;
+	var agentControl = require('./agent-control');
 	agentControl.loadAgent(agent,function (err, loadedAgent) {
 		if (err) {
 			res.send(500, err.message);
@@ -290,7 +295,8 @@ var execute = function(req,res) {
 	var agent = req.body.khAgent;
 	var job =  req.body.job;
 	logger.debug(require('util').inspect(job, {depth:null}));
-	this.agentControl.loadAgent(agent, function (agentError, loadedAgent) {
+	var agentControl = require('./agent-control');
+	agentControl.loadAgent(agent, function (agentError, loadedAgent) {
 		
 		
 		this.executionControl.executeJob(loadedAgent, job, function(err){
