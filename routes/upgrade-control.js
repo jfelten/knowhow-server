@@ -1,7 +1,7 @@
 var fileControl = require('../routes/file-control');
 
-//var KnowhowShell = require('knowhow-shell');
-var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
+var KnowhowShell = require('knowhow-shell');
+//var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
 var KHShell = new KnowhowShell(eventEmitter);
 var async = require('async');
 
