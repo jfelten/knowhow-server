@@ -28,7 +28,8 @@ function listenForEvents(agent, socket) {
 		});
 		socket.on('execution-error', function(command) {
     		if (command) {
-				logger.debug("execution error");
+				logger.debug("execution error: ");
+				logger.debug(command);
 				executionControl.eventEmitter.emit('execution-error',agent, command);
 			}
 			
@@ -71,6 +72,7 @@ function listenForEvents(agent, socket) {
 			}
 		});
 		socket.on('job-cancel', function(job){
+			logger.debug("job-cancel message received");
 			if (job) {
 				logger.info('job: '+job.id+ ' cancelled.');
 				executionControl.cancelJob(agent._id, job.id);

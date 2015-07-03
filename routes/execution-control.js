@@ -47,7 +47,7 @@ setEventSocket = function(agent, socket) {
 };
 exports.setEventSocket = setEventSocket;
 
-updateJob = function(agent, job, callback ) {
+var updateJob = function(agent, job, callback ) {
 	if (agent && agent._id && job && job.id) {
 		logger.debug("updating: "+job.id);
 		agentId=agent._id;
@@ -73,7 +73,7 @@ updateJob = function(agent, job, callback ) {
 
 exports.updateJob = updateJob;
 
-checkFiles = function(job, callback) {
+var checkFiles = function(job, callback) {
 	files=job.files;
 
 	for (uploadFile in files) {
@@ -100,7 +100,7 @@ checkFiles = function(job, callback) {
 	}
 }
 
-replaceVars = function(input, envVars) {
+var replaceVars = function(input, envVars) {
 	var output = input;
 	if (envVars) {
 		logger.debug("input="+input);
@@ -132,7 +132,7 @@ replaceVars = function(input, envVars) {
 	return output;
 };
 
-initiateJob = function(agentId, jobId, callback ) {
+var initiateJob = function(agentId, jobId, callback ) {
 	if (currentJobs[agentId] && currentJobs[agentId][jobId] &&  currentJobs[agentId][jobId].progress >0) {
 		logger.debug(currentJobs[agentId][jobId]);
 		cancelJob(agentId, jobId);
@@ -155,28 +155,17 @@ initiateJob = function(agentId, jobId, callback ) {
 
 exports.initiateJob = initiateJob;
 
-cancelJob = function(agentId, jobId, callback ) {
+var cancelJob = function(agentId, jobId, callback ) {
 	if (currentJobs[agentId] != undefined && currentJobs[agentId][jobId] != undefined) {
-	/*
-		for (uploadFile in currentJobs[agentId][jobId].fileProgress) {
-			if (currentJobs[agentId][jobId].fileProgress[uploadFile] && 
-				currentJobs[agentId][jobId].fileProgress[uploadFile].gzip) {
-			
-				currentJobs[agentId][jobId].fileProgress[uploadFile].gzip.close();
-			}
-			if (currentJobs[agentId][jobId].fileProgress[uploadFile] && 
-				currentJobs[agentId][jobId].fileProgress[uploadFile].tar) {
-			
-				currentJobs[agentId][jobId].fileProgress[uploadFile].tar.close();
-			}
-			if (currentJobs[agentId][jobId].fileProgress[uploadFile].readStream != null) {
-				currentJobs[agentId][jobId].fileProgress[uploadFile].readStream.close();
-			}
-	    }*/
+		
 		clearTimeout(currentJobs[agentId][jobId].timeout);
 	    clearInterval(currentJobs[agentId][jobId].fileCheck);
 	    console.log(currentJobs[agentId]);
 	    eventEmitter.emit('job-cancel',currentJobs[agentId].agent, currentJobs[agentId][jobId]);
+	    if (currentJobs[agentId][jobId].callback) {
+			logger.debug("executing callback for: "+jobId);
+	    	currentJobs[agentId][jobId].callback(new Error(currentJobs[agentId][jobId].message), currentJobs[agentId][jobId]);
+	    }
 	    delete currentJobs[agentId][jobId];
 	}
 	 
@@ -187,7 +176,7 @@ cancelJob = function(agentId, jobId, callback ) {
 
 exports.cancelJob = cancelJob;
 
-completeJob = function(agent,job) {
+var completeJob = function(agent,job) {
 	if (agent && job) {
 		
 		var jobId = job.id;
@@ -228,6 +217,10 @@ completeJob = function(agent,job) {
 		    	clearInterval(currentJobs[agentId][jobId].fileCheck);
 		    }
 		    logger.debug("removed file checks");
+		    if (currentJobs[agentId][jobId].callback) {
+				logger.debug("executing callback for: "+jobId);
+		    	currentJobs[agentId][jobId].callback(undefined, currentJobs[agentId][jobId]);
+		    }
 		    currentJobs[agentId][jobId] = undefined;
 		   
 		   
@@ -258,7 +251,7 @@ var cancelJobOnAgent = function(agent,job,callback) {
 
 exports.cancelJobOnAgent = cancelJobOnAgent;
 
-exports.executeJob = function(agent,job,callback) {
+exports.executeJob = function(agent,job,callback,onCompleteCallback) {
 	
 	if (!agent || agent.status != 'READY') {
 		var agentName = undefined;
@@ -337,6 +330,7 @@ exports.executeJob = function(agent,job,callback) {
 	    		logger.info("job: "+job.id+" initialized on: "+agent.host+":"+agent.port);
 	    		currentJobs[agentId][jobId] = job;
 	    		currentJobs[agentId].agent=agent;
+	    		currentJobs[agentId][jobId].callback = onCompleteCallback;
 				// do the POST call
 				var reqPost = http.request(options, function(res) {
 					logger.debug("statusCode: ", res.statusCode);

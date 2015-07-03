@@ -1,6 +1,99 @@
 
-div(ng-controller='AppCtrl') 
-	p About
-	p
-		| Knowhow server version: {{serverInfo.version}} 
+.container.agent-table
+	div(ng-controller='AboutController') 
+		.row.agent-table-header
+			.col-md-3.col-lg-3
+				h4
+					div(ng-hide="update_message")
+						| About this server
+					.job-message-block.pull-left(ng-show="update_message")
+						i.glyphicon.glyphicon-refresh.icon-refresh-animate(ng-show="update_message=='checking for updates...'")
+						&nbsp;{{update_message}}
+		.row
+			.col-md-6.col-lg-6
+				|Started:
+				b {{serverInfo.started}} 
+				| server process running as user: 
+				b
+					i {{serverInfo.username}}			
+		.row
+			.col-md-3.col-lg-3
+				| Knowhow server: {{serverInfo.version}} 
+			.col-md-3.col-lg-3.job-message-block(ng-show = "serverInfo.version != serverInfo.newestVersions['knowhow-server']")
+				| lastest: {{serverInfo.newestVersions['knowhow-server']}}
+			.col-md-3.col-lg-3(ng-show = "serverInfo.version == serverInfo.newestVersions['knowhow-server']")
+				| lastest: {{serverInfo.newestVersions['knowhow-server']}}
+		.row.agent-table-header
+			.col-md-3.col-lg-3
+				h4 All globally installed packages
+		.row(ng-show="serverInfo.installedVersions['knowhow']")
+			.col-md-3.col-lg-3
+				| knowhow: {{serverInfo.installedVersions["knowhow"]}} 
+			.col-md-3.col-lg-3.job-message-block(ng-show = "serverInfo.newestVersions['knowhow'] != serverInfo.installedVersions['knowhow']")
+				| lastest: {{serverInfo.newestVersions["knowhow"]}}
+			.col-md-3.col-lg-3(ng-show = "serverInfo.newestVersions['knowhow'] == serverInfo.installedVersions['knowhow']")
+				| lastest: {{serverInfo.newestVersions["knowhow"]}}
+		.row(ng-show="serverInfo.installedVersions['knowhow-agent']")
+			.col-md-3.col-lg-3
+				| knowhow-agent: {{serverInfo.installedVersions["knowhow-agent"]}} 
+			.col-md-3.col-lg-3.job-message-block(ng-show = "serverInfo.newestVersions['knowhow-agent'] != serverInfo.installedVersions['knowhow-agent']")
+				| lastest: {{serverInfo.newestVersions["knowhow-agent"]}}
+			.col-md-3.col-lg-3(ng-show = "serverInfo.newestVersions['knowhow-agent'] == serverInfo.installedVersions['knowhow-agent']")
+				| lastest: {{serverInfo.newestVersions["knowhow-agent"]}}
+		.row(ng-show="serverInfo.installedVersions['knowhow-api']")
+			.col-md-3.col-lg-3
+				| knowhow-api: {{serverInfo.installedVersions["knowhow-api"]}} 
+			.col-md-3.col-lg-3.job-message-block(ng-show = "serverInfo.newestVersions['knowhow-api'] != serverInfo.installedVersions['knowhow-api']")
+				| lastest: {{serverInfo.newestVersions["knowhow-api"]}}
+			.col-md-3.col-lg-3(ng-show = "serverInfo.newestVersions['knowhow-api'] == serverInfo.installedVersions['knowhow-api']")
+				| lastest: {{serverInfo.newestVersions["knowhow-api"]}}
+		.row(ng-show="serverInfo.installedVersions['knowhow-shell']")
+			.col-md-3.col-lg-3
+				| knowhow-shell: {{serverInfo.installedVersions["knowhow-shell"]}} 
+			.col-md-3.col-lg-3.job-message-block(ng-show ="serverInfo.newestVersions['knowhow-shell'] != serverInfo.installedVersions['knowhow-shell']")
+				| lastest: {{serverInfo.newestVersions["knowhow-shell"]}}
+			.col-md-3.col-lg-3(ng-show = "serverInfo.newestVersions['knowhow-shell'] == serverInfo.installedVersions['knowhow-shell']")
+				| lastest: {{serverInfo.newestVersions["knowhow-shell"]}}
+		.row(ng-show = "update_message != 'checking for updates...' && upgradeAvailable")
+			.col-md-6.col-lg-6
+				button.btn.btn-primary(ng-click='openUpgradeModal(serverInfo)' ) Upgrade Now
+			
+div
+	script(type="text/ng-template" id="upgradeServer")
+		.modal-header
+			h3.modal-title Upgrade knowhow
+		.modal-body
+			span
+				.error-message(ng-show="message") 
+					i.glyphicon.glyphicon-refresh.icon-refresh-animate(ng-show="message=='Upgrade In Progress'")
+					&nbsp;{{message}}
+			div
+				| Upgrade to versions:  
+			ul
+				b
+					| knowhow&nbsp;
+					i {{serverInfo.newestVersions["knowhow"]}},&nbsp;
+					| knowhow-server&nbsp;
+					i {{serverInfo.newestVersions["knowhow-server"]}},&nbsp;
+					| knowhow-agent&nbsp;
+					i {{serverInfo.newestVersions["knowhow-agent"]}},&nbsp;
+					| knowhow-shell&nbsp;
+					i {{serverInfo.newestVersions["knowhow-shell"]}},&nbsp;
+					| knowhow-api&nbsp;
+					i {{serverInfo.newestVersions["knowhow-api"]}}		
+			ul 
+				| Password required for global install. User 
+				b
+					i {{serverInfo.username}} 
+				| must be in the sudoers list.
+			ul 
+				| Password for {{serverInfo.username}}: 
+				input(type="password" name="sudoPassword" ng-model="formData.sudoPassword")
+			
+				
+		.modal-footer
+			button.btn.btn-primary(ng-click="upgradeServer(formData)") Upgrade Server
+			button.btn.btn-warning(ng-click="cancel()") Cancel
+
+		
 

@@ -3,7 +3,7 @@
 	.row.agent-table-header
 		.col-md-6.col-lg-6
 			h4
-				| All Agents &#42; = required
+				| All Agents &#42; = required {{agentUpgradesAvailable}}
 		.col-md-6.col-lg-6 
 			.job-message-block(ng-show="message") | {{message}}
 	.row
@@ -28,22 +28,32 @@
 				.form-group
 					| &nbsp;
 					button.btn.btn-primary(ng-click='addAgent(agent)' ) Add Agent
-
+				.form-group(ng-show="agentUpgradesAvailable")
+					| &nbsp;
+					button.btn.btn-primary(ng-click='upgradeAllAgents()' ) Upgrade All Agents
 	.row(ng-repeat="agent in connectedAgents")
 		.col-md-2.col-lg-2
 			i(title="refresh agent").glyphicon.glyphicon-refresh(ng-show="agent.status =='READY' || agent.status =='ERROR'" ng-click='refreshAgent(agent)' )
 			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")
-			&nbsp;
-			i(title="delete agent").glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) &nbsp;
+			i(title="delete agent").glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) 
+			i(title="upgrade agent").glyphicon.glyphicon-exclamation-sign(ng-show="agent.agentUpgradeAvailable || agent.shellUpgradeAvailable" ng-click='upgradeAgent(agent)')
+			i.glyphicon(ng-show="!agent.agentUpgradeAvailable && !agent.shellUpgradeAvailable")&nbsp;
+			&nbsp;&nbsp;
 			i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
 			i.glyphicon.glyphicon-hdd.agent-error.blink( ng-show="agent.status=='ERROR'")
-			span(ng-show="agent.version")
+			span(ng-show="agent.version && !agent.agentUpgradeAvailable")
 				span(title="knowhow-agent version")
 					&nbsp;({{agent.version}})
-			span(ng-show="agent.shellversion")
+			span(ng-show="agent.version && agent.agentUpgradeAvailable")
+				span.error-message(title="knowhow-agent upgrade available")
+					&nbsp;({{agent.version}})
+			span(ng-show="agent.shellversion && !agent.shellUpgradeAvailable")
 				span(title="knowhow-shell version")
 					&nbsp;({{agent.shellversion}})
-		.col-md-3.col-lg-3.pull-left
+			span(ng-show="agent.shellversion && agent.shellUpgradeAvailable")
+				span.error-message(title="knowhow-shell upgrade available")
+					&nbsp;({{agent.shellversion}})
+		.col-md-2.col-lg-2.pull-left
 			a(href="http://{{agent.host}}:{{agent.port}}" target="__blank") 
 				{{agent.user}}@{{agent.host}}:{{agent.port}} 
 		.col-md-5.col-lg-5

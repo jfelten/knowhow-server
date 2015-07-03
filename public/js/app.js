@@ -41,7 +41,7 @@ config(function ($routeProvider, $locationProvider) {
         }).
     when('/about', {
           templateUrl: 'partials/about',
-          controller: 'AboutController'
+          controller: 'AppCtrl'
         }).
     otherwise({
       //redirectTo: '/agents'

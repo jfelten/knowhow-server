@@ -15,10 +15,11 @@ var startTime = moment().format('MMMM Do YYYY, h:mm:ss a');
 
 
 var listAgents = function(req, res) {
-	agentControl.listAgents(function (err, agents) {
+	agentControl.listAgents(this.serverInfo,function (err, agents) {
 		if (err) {
 			res.send(500, err.message);
 		} else {
+			
 			res.json(agents);
 		}
 	});
@@ -28,34 +29,43 @@ var usernameVar = "unknown";
 
 
 
-var getServerInfo = function(userName) {
+var getServerInfo = function(userName, newestVersions) {
 
 	
     var os = require("os");
     var pjson = require('../package.json');
-    
-   
 	serverInfo = {
-	  		version: pjson.version,
-	  		copyright: moment().format('YYYY'),
-			name: os.hostname(),
-		    started: startTime,
-		    port: server.port,
-		    workingDir: require('process').cwd(),
-		    cryptoKey: 	'd6F3Efea',
-		    username: userName
-	};
-	
+		  		version: pjson.version,
+		  		copyright: moment().format('YYYY'),
+				name: os.hostname(),
+			    started: startTime,
+			    port: server.port,
+			    workingDir: require('process').cwd(),
+			    cryptoKey: 	'd6F3Efea',
+			    username: userName
+			    
+		};
 	return serverInfo;
+	
+	
 };
-exports.getServerInfo = getServerInfo;
 
+var checkForUpdates = function (req, res) {
+  console.log(require('./upgrade-control'));
+  require('./upgrade-control')(this.server).getNewestVersions(function(err,versions) {
+	  if (err) {
+	  	res.send(500, err.message);
+	  } else {
+	  	this.serverInfo.newestVersions = versions; 
+	  	res.json(versions); 
+	  }
+  });
+};
 
 var getServerInfoAPI = function (req, res) {
-  var os = require("os");
-  logger.info(req.connection.remoteAddress);
   res.json(this.serverInfo);
 };
+exports.getServerInfoAPI = getServerInfoAPI;
 
 var fileListForDir = function (req,res) {
 	var dir = req.query.dir;
@@ -251,7 +261,7 @@ var deleteAgent = function (req, res) {
 	  	if (err) {
 	  		res.send(500, err);
 	  	} else {
-		  	agentControl.listAgents(function (err, agents) {
+		  	agentControl.listAgents(this.serverInfo, function (err, agents) {
 				if (err) {
 					res.send(500, err);
 				} else {
@@ -319,6 +329,10 @@ var execute = function(req,res) {
 };
 
 var cancelJob = function(req,res) {
+	if (!req.body) {
+		res.send(500, new Error("invalid request"));
+		return;
+	}
 	var agent = req.body.khAgent;
 	var job =  req.body.job;
 	
@@ -349,12 +363,16 @@ var runningJobList = function(req, res) {
 var api = function(server, callback) {
 	this.server = server;
 	username(function (err, userName) {
-		
-
-		this.listAgents = listAgents;
 		this.serverInfo = getServerInfo(userName);
+		require('./upgrade-control')(this.server).getNewestVersions(function(err, versions) {
+			this.serverInfo.newestVersions = versions;
+		});
+		require('./upgrade-control')(this.server).getInstalledVersions(function(err, versions) {
+			this.serverInfo.installedVersions = versions;
+		});
 		console.log(serverInfo);
-		this.getServerInfoAPI = getServerInfoAPI.bind({serverInfo: this.serverInfo});;
+		this.listAgents = listAgents.bind({serverInfo: this.serverInfo});
+		this.getServerInfoAPI = getServerInfoAPI.bind({serverInfo: this.serverInfo});
 		this.fileListForDir = fileListForDir;
 		this.fileContent = fileContent;
 		this.addFile = addFile;
@@ -363,7 +381,7 @@ var api = function(server, callback) {
 		this.addAgent = addAgent.bind({serverInfo: this.serverInfo, agentEventHandler: server.agentEventHandler});
 		this.resetAgent = resetAgent.bind({serverInfo: this.serverInfo, agentEventHandler: server.agentEventHandler});
 		this.agentEvent = agentEvent;
-		this.deleteAgent = deleteAgent;
+		this.deleteAgent = deleteAgent.bind({serverInfo: this.serverInfo});;
 		this.getAgentInfo = getAgentInfo;
 		this.agentHeartbeat = agentHeartbeat;
 		this.waitForAgentStartup = waitForAgentStartup;
@@ -372,7 +390,10 @@ var api = function(server, callback) {
 		this.cancelJob = cancelJob.bind({executionControl: server.executionControl});;
 		this.repoList = repoList;
 		this.runningJobList = runningJobList.bind({executionControl: server.executionControl});;
+		this.getServerInfoAPI = getServerInfoAPI.bind({serverInfo: this.serverInfo});
+		this.checkForUpdates = checkForUpdates.bind({serverInfo: this.serverInfo}); 
 	    callback(undefined,this);
+	
 	});
 	
 	

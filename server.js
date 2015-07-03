@@ -25,7 +25,7 @@ function compile(str, path) {
 	    .use(nib());
 	};
 
-function configureApp(http, app, api, workflowControl) {	
+function configureApp(http, app, api, workflowControl, upgradeControl) {	
 	app.use(express.static(path.join(__dirname, 'public')));
 	app.use(stylus.middleware(
 			  { src: __dirname + '/public/',
@@ -120,6 +120,12 @@ function configureApp(http, app, api, workflowControl) {
 	app.post('/api/initAgents', workflowControl.initAgentsAPICall);
 	app.post('/api/executeWorkflow', workflowControl.executeWorkflowAPICall);
 	
+	//upgrades
+	app.post('/upgrade/upgradeServer', upgradeControl.upgradeServerAPI);
+	app.post('/upgrade/upgradeAgent', upgradeControl.upgradeAgentAPI);
+	app.post('/upgrade/upgradeAllAgents', upgradeControl.upgradeAllAgentsAPI);
+	app.post('/api/checkForUpdates',api.checkForUpdates);
+	
 	//repo urls
 	var API = require('./routes/repository-control').api;
 	for (index in API.routes) {
@@ -166,13 +172,18 @@ function configureApp(http, app, api, workflowControl) {
 
 
 //do a heartbeat check each minute and make sure socket connections are made
-var agentCheck = function(agentEventHandler, agentControl) {
-	agentControl.listAgents(function (err, agents) {
-		//logger.debug(agents);
+var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
+	console.log("________________CHECKING AGENTS___________________");
+	agentControl.listAgents(serverInfo, function (err, agents) {
+		logger.debug(agents);
 		var agentConnects = new Array(agents.length);
 		for (agentIndex in agents) {
 			var agent = agents[agentIndex]; 
 			agentConnects[agentIndex] = function(callback) { 
+				if (this.agent.status == 'INSTALLING') {
+					callback();
+					return;
+				}
 				logger.info("contacting: "+this.agent.user+"@"+this.agent.host+":"+this.agent.port);
 				agentControl.heartbeat(this.agent, function (err, connectedAgent) {
 					if (err) {
@@ -255,6 +266,7 @@ var start = function(http,port,callback) {
 	});
 }
 
+
 /**
  * factory method
  * @param port to listen on
@@ -272,16 +284,30 @@ var KHServer = function(port, callback) {
 	self.agentControl = require('./routes/agent-control');
 	self.executionControl = require('./routes/execution-control');
 	self.workflowControl = require('./routes/workflow-control')(self);
-	agentCheck(self.agentEventHandler, self.agentControl);
-	self.thisServerCheck = function () {
-		agentCheck(self.agentEventHandler, self.agentControl);
-	}
-	setInterval(self.thisServerCheck,60000);
+	self.upgradeControl = require('./routes/upgrade-control')(self);
+	
+
 	self.api = require('./routes/api.js')(this, function(err, api) {
 		self.api=api;
-		configureApp(self.http, self.app, self.api, self.workflowControl);
+		configureApp(self.http, self.app, self.api, self.workflowControl, self.upgradeControl);
 		start(self.http,port,callback);
+		self.serverInfo = self.api.serverInfo;
+		agentCheck(self.agentEventHandler, self.agentControl, self.serverInfo);
+		self.thisServerCheck = function () {
+			agentCheck(self.agentEventHandler, self.agentControl, self.serverInfo);
+		}
+		setInterval(self.thisServerCheck,60000);
 	});
+	
+	self.stop = function(callback) {
+	
+		self.http.close(function (err) {
+			callback();
+		});
+		
+	};
+	
+	
 	
 };
 

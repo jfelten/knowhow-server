@@ -375,6 +375,10 @@ p {
   padding-top: 5px;
   font-size: 13px;
 }
+
+.error-message {
+	color: red;
+}
 .blink {
   -webkit-animation: blink 1s steps(5, start) infinite;
   -moz-animation: blink 1s steps(5, start) infinite;

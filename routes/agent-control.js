@@ -160,7 +160,7 @@ var heartbeat = function(agent, callback) {
 
 exports.heartbeat = heartbeat;
 
-function listAgents(callback) {
+function listAgents(serverInfo, callback) {
 	db.find({}, function(err, docs) {
 		if (err) {
 			callback(err);
@@ -179,6 +179,25 @@ function listAgents(callback) {
 
 
 		var result = docs.sort(agentSort);
+		for (index in docs) {
+			if (serverInfo.newestVersions && ((docs[index].shellversion < serverInfo.newestVersions['knowhow-shell']) || !docs[index].shellversion) ) {
+				docs[index].shellUpgradeAvailable = true;
+				if (!docs[index].message) {
+					docs[index].message = "knowhow-shell upgrade available";
+				}
+			} else {
+				delete docs[index].shellUpgradeAvailable
+			}
+			if (serverInfo.newestVersions && ((docs[index].version < serverInfo.newestVersions['knowhow-agent']) || !docs[index].version) ) {
+				docs[index].agentUpgradeAvailable = true;
+				if (!docs[index].message) {
+					docs[index].message = "agent upgrade available";
+				}
+			} else {
+				delete docs[index].agentUpgradeAvailable;
+			}
+			
+		}
 		if (callback) {
 			callback(undefined, result);
 		}
@@ -330,11 +349,13 @@ initAgent = function(agent, serverInfo, callback) {
 			logger.info("initialized agent with password: "+agent_prototype.user+"@"+agent_prototype.host+":"+agent_prototype.port);
 		});
 	} 
+	delete agent_prototype.version;
+	delete agent_prototype.shellversion;
 	delete agent_prototype._id;
 	return agent_prototype;
 };
 
-var deleteAgent = function( agent, callback) {
+var deleteAgent = function(agent, callback) {
 	if (!agent) {
 		callback(new Error("deleteAgent: no agent provided"));
 		return;
@@ -783,12 +804,12 @@ var waitForAgentStartup = function(callback) {
 	
     agent.message = 'starting agent';
     eventEmitter.emit('agent-update', agent);
-    //timeout after 40 secs
+    //timeout after 60 secs
     var timeout = setTimeout(function() {
     	clearInterval(heartbeatCheck);
     	agent.message=("agent failed to start");
     	callback(new Error("agent failed to start"));
-    }, 40000);
+    }, 60000);
     
     
     //wait until a heartbeat is received

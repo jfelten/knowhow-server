@@ -3,20 +3,105 @@
 /* Controllers */
 
 var myModule = angular.module('myApp.controllers', []).
-  controller('AppCtrl', function ($scope, $http) {
-
+  controller('AppCtrl', function ( $http, $scope, $modal) {
+	$scope.serverInfo = {};
+	$scope.update_message = "";
     $http({
       method: 'GET',
       url: '/api/serverInfo'
     }).
     success(function (data, status, headers, config) {
       $scope.serverInfo = data;
+
     }).
     error(function (data, status, headers, config) {
       $scope.name = 'Error!';
     });
-
+    $scope.upgradeAvaialble = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions.knowhow-server));
+    
   }).
+  controller('AboutController', function ( $http, $scope, $modal) {
+	$scope.serverInfo = {};
+	$scope.update_message = "";
+    $http({
+      method: 'GET',
+      url: '/api/serverInfo'
+    }).
+    success(function (data, status, headers, config) {
+      $scope.serverInfo = data;
+
+    }).
+    error(function (data, status, headers, config) {
+      $scope.name = 'Error!';
+    });
+    $scope.upgradeAvaialble = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions.knowhow-server));
+    
+    var checkForUpdates = function() {
+    	console.log("checkiong for updates");
+    	$scope.update_message = "checking for updates..."
+    	$http({
+		      method: 'POST',
+		      url: '/api/checkForUpdates'
+		 }).success(function (data, status, headers, config) {
+		 	 $scope.serverInfo.newestVersions = data;
+		 	 $scope.upgradeAvailable = ($scope.serverInfo.newestVersions 
+		 	 		&& (
+		 	 			$scope.serverInfo.version < $scope.serverInfo.newestVersions["knowhow-server"]
+		 	 		    || ($scope.serverInfo.installedVersions && $scope.serverInfo.installedVersions["knowhow"] < $scope.serverInfo.newestVersions["knowhow"])
+		 	 		    || ($scope.serverInfo.installedVersions && $scope.serverInfo.installedVersions["knowhow-agent"] < $scope.serverInfo.newestVersions["knowhow-agent"])
+		 	 		    || ($scope.serverInfo.installedVersions && $scope.serverInfo.installedVersions["knowhow-api"] < $scope.serverInfo.newestVersions["knowhow-api"])
+		 	 		    || ($scope.serverInfo.installedVersions && $scope.serverInfo.installedVersions["knowhow-shell"] < $scope.serverInfo.newestVersions["knowhow-shell"])
+		 	 		   )
+		 	 		);
+		 	 
+		     $scope.update_message = "";
+		
+		 }).
+		    error(function (data, status, headers, config) {
+		      $scope.update_message = "";
+		 });
+    }
+    //checkForUpdates();
+    $scope.openUpgradeModal = function(serverInfo) {
+    	console.log(serverInfo);
+		var modalInstance ={};
+		var upgradeController=  function ($rootScope, $scope, $modal, $log, qs_repo) {
+		   $scope.serverInfo = serverInfo;
+		   $scope.upgradeServer = function(formData) {
+		    	$scope.message = 'Upgrade In Progress';
+		    	$http.post('/upgrade/upgradeServer', { "sudoPwd": formData.sudoPassword} ).
+		        success(function(data) {
+		        	$scope.connectedAgents = data;
+		        	//location.reload(); 
+		        	modalInstance.dismiss('upgrade complete');
+		        }).error(function(data, status, headers, config) {
+		        	console.log(data);
+		        	$scope.message="Unable to upgrade server: "+data.message;
+		        });
+		    };
+		
+		  $scope.cancel = function () {
+		    console.log("nope I really don't want to do it");
+		    modalInstance.dismiss('cancel');
+		  };
+	
+	    };
+	    modalInstance = $modal.open({
+	      templateUrl: 'upgradeServer',
+	      controller: upgradeController,
+	      size: ''
+	    });
+	
+	    modalInstance.result.then(function (selectedItem) {
+	      //$scope.selected = selectedItem;
+	    }, function () {
+	      //$log.info('Modal dismissed at: ' + new Date());
+	    });
+	    
+	}
+	checkForUpdates();
+
+  }).   
   controller('AddAgentController', function ($scope, $http, $location) {
 	
 	console.log('starting add agent controller');  
@@ -37,11 +122,7 @@ var myModule = angular.module('myApp.controllers', []).
 //      }
 //      if (agent_status_box != undefined) {
 //    	  agent_status_box.textContent = agent.status;
-//      }
-      $http.get('/api/connectedAgents').
-      success(function(data) {
-      	$scope.connectedAgents = data;
-      });
+     	getAgentList();
       
     });
     
@@ -56,10 +137,7 @@ var myModule = angular.module('myApp.controllers', []).
 //      	  agent_status_box.textContent = agent.status;
 //        }
 		$scope.message = agent.message;
-		$http.get('/api/connectedAgents').
-	      success(function(data) {
-	      	$scope.connectedAgents = data;
-	      });
+		getAgentList();
         
       });
     socket.on('agent-add', function(agent){
@@ -69,10 +147,21 @@ var myModule = angular.module('myApp.controllers', []).
         });
     });
     
-    $http.get('/api/connectedAgents').
-    success(function(data) {
-    	$scope.connectedAgents = data;
-    });
+    function getAgentList() {
+    	$http.get('/api/connectedAgents').
+	    success(function(data) {
+	    	$scope.connectedAgents = data;
+	    		for(var index in data) {;
+		      		if (data[index].agentUpgradeAvailable || data[index].shellUpgradeAvailable) {
+		      			$scope.agentUpgradesAvailable = true;
+		      			break;
+		      		}
+		      	}
+		     console.log("upgrade available ="+$scope.agentUpgradesAvailable);
+	    });
+    
+    }
+    getAgentList();
     
 
     $scope.addAgent = function (agent) {
@@ -92,7 +181,9 @@ var myModule = angular.module('myApp.controllers', []).
     	$http.post('/api/deleteAgent', agent).
         success(function(data) {
         	$scope.connectedAgents = data;
-        	//location.reload(); 
+        	getAgentList();
+        }).error(function(data, status, headers, config) {
+        	getAgentList();
         });
     };
     
@@ -102,9 +193,35 @@ var myModule = angular.module('myApp.controllers', []).
     	$http.post('/api/resetAgent', agent).
         success(function(data) {
         	$scope.connectedAgents = data;
-        	//location.reload(); 
+        	getAgentList(); 
         });
     };
+    
+    $scope.upgradeAgent = function(agent) {
+    
+    	$scope.message = undefined;
+    	$scope.master = angular.copy(agent);
+    	$http.post('/upgrade/upgradeAgent',{"agent": agent}).
+        success(function(data) {
+        	getAgentList();
+        	//location.reload(); 
+        }).error(function(data, status, headers, config) {
+        	$scope.message="Unable to upgrade agent: "+data.message;
+        });
+    }
+    
+    $scope.upgradeAllAgents = function() {
+    
+    	$scope.message = undefined;
+    	$http.post('/upgrade/upgradeAllAgents').
+        success(function(data) {
+        	getAgentList();
+        	//location.reload(); 
+        }).error(function(data, status, headers, config) {
+        	$scope.message="Unable to upgrade agent: "+data.message;
+        	getAgentList();
+        });
+    }
 	  
     $scope.tabs = [
                    { title:'Dynamic Title 1', content:'Dynamic content 1' },
@@ -929,15 +1046,20 @@ var myModule = angular.module('myApp.controllers', []).
 	    }).
 	    success(function (data, status, headers, config) {
 	      $scope.serverInfo = data;
+	      $scope.newRepo = {
+		    name: 'MyRepo',
+		    path:  $scope.serverInfo.workingDir+'/MyRepo'
+		  };
 	    }).
 	    error(function (data, status, headers, config) {
 	      $scope.serverInfo = {};
+       $scope.newRepo = {
+	    	name: 'MyRepo',
+	    	path:  '/tmp/MyRepo'
+	   };
 	});
 	    
-	$scope.newRepo = {
-    	name: 'MyRepo',
-    	path:  $scope.serverInfo.workingDir+'/MyRepo'
-    };
+	
     var loadRepos = function() {
     	$http.get('/repo/listRepositories').
 	    success(function(data) {

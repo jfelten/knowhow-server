@@ -1,0 +1,27 @@
+{
+  "id": "update KH Agent to latest",
+  "working_dir": "./",
+  "options": {
+    "timeoutms": 360000
+  },
+  "files": [],
+  "script": {
+    "env": {
+      "PATH": "/opt/local/bin:/opt/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "PASSWORD": "${agent_password}"
+    },
+    "commands": [
+      {
+        "command": "sudo npm -g install knowhow",
+        "responses": {
+          "[Pp]assword": "${PASSWORD}"
+        },
+        "errorConditions": [
+          "Sorry",
+          "try again.",
+          "invalid"
+        ]
+      }
+    ]
+  }
+}
