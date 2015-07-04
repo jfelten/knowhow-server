@@ -17,7 +17,8 @@ block content
 								| knowhow-server version: 
 								b {{serverInfo.version}}
 								br
-								span(ng-show = upgradeAvailable)
+								
+								span(ng-show="upgradeAvailable")
 									a(href='/about') Upgrade Available >>>
 						ul.nav.navbar-nav
 							- var obj = { '/repositories':'Repositories',  '/agents':'Agents', '/jobs':'Jobs', '/workflows':'Workflows', '/about':'About' }

@@ -12,13 +12,13 @@ var myModule = angular.module('myApp.controllers', []).
     }).
     success(function (data, status, headers, config) {
       $scope.serverInfo = data;
-
+	  $scope.upgradeAvailable = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions['knowhow-server']));
+	  console.log($scope.upgradeAvailable+" "+$scope.serverInfo.version+" "+$scope.serverInfo.newestVersions['knowhow-server']);
     }).
     error(function (data, status, headers, config) {
       $scope.name = 'Error!';
     });
-    $scope.upgradeAvaialble = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions.knowhow-server));
-    
+        
   }).
   controller('AboutController', function ( $http, $scope, $modal) {
 	$scope.serverInfo = {};
@@ -34,7 +34,7 @@ var myModule = angular.module('myApp.controllers', []).
     error(function (data, status, headers, config) {
       $scope.name = 'Error!';
     });
-    $scope.upgradeAvaialble = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions.knowhow-server));
+    $scope.upgradeAvailable = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions.knowhow-server));
     
     var checkForUpdates = function() {
     	console.log("checkiong for updates");

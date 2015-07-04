@@ -255,7 +255,7 @@ var upgradeServerAPI = function(req, res) {
  * API call to upgrade an agent
  */
 var upgradeAgentAPI = function(req, res) {
-	upgradeAgent(this.server, function (err) {
+	upgradeAgent(req.body.agent, this.server, function (err) {
 		if(err) {
 			res.send(500, err);
 		} else {
