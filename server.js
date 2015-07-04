@@ -284,11 +284,9 @@ var KHServer = function(port, callback) {
 	self.agentControl = require('./routes/agent-control');
 	self.executionControl = require('./routes/execution-control');
 	self.workflowControl = require('./routes/workflow-control')(self);
-	self.upgradeControl = require('./routes/upgrade-control')(self);
-	
-
 	self.api = require('./routes/api.js')(this, function(err, api) {
 		self.api=api;
+		self.upgradeControl = require('./routes/upgrade-control')(self);
 		configureApp(self.http, self.app, self.api, self.workflowControl, self.upgradeControl);
 		start(self.http,port,callback);
 		self.serverInfo = self.api.serverInfo;
