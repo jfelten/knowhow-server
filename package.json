@@ -1,6 +1,6 @@
 {
   "name": "knowhow-server",
-  "version": "0.0.51",
+  "version": "0.0.52",
   "description": "A personal workflow engine that can manage and use any network connected host",
   "engines": {
     "node": "<0.11.0 >0.12"
