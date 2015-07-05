@@ -274,7 +274,7 @@ var start = function(http,port,callback) {
 var KHServer = function(port, callback) {
 	
 	var self = this;
-	
+	self.port = port;
 
 	
 	self.app = express();
