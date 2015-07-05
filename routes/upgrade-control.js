@@ -219,7 +219,7 @@ var upgradeAgent = function(agent, server, callback) {
 					callback(err);
 				} else {
 					async.each(agents, function(agent, cb) {
-						if (agent.agentUpgradeAvailable || agent.shellUpgradeAvailable) {
+						if (agent.status=="READY" &&(agent.agentUpgradeAvailable || agent.shellUpgradeAvailable)) {
 							upgradeAgent(agent,server,cb);
 						} else {
 							cb();
