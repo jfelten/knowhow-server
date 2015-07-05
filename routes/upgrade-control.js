@@ -186,7 +186,7 @@ var upgradeAgent = function(agent, server, callback) {
 				 			server.agentControl.updateAgent(loadedAgent, function() {});
 				 			server.agentControl.eventEmitter.emit('agent-update', loadedAgent);
 				 		} else {
-					 		server.agentControl.resetAgent(loadedAgent, server.agentEventHandler, server.api.serverInfo, function(err) {
+					 		server.agentControl.resetAgent(loadedAgent, server.agentEventHandler, server.serverInfo, function(err) {
 					 			if(err) {
 						 			 //agent.progress=1;
 									 //agent.status='ERROR'
