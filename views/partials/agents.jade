@@ -36,7 +36,7 @@
 			i(title="refresh agent").glyphicon.glyphicon-refresh(ng-show="agent.status =='READY' || agent.status =='ERROR'" ng-click='refreshAgent(agent)' )
 			i.glyphicon.glyphicon-refresh.icon-refresh-animate.agent-error( ng-show="agent.status !='READY' && agent.status !='ERROR'")
 			i(title="delete agent").glyphicon.glyphicon-remove(ng-click='deleteAgent(agent)' ) 
-			i(title="upgrade agent").glyphicon.glyphicon-exclamation-sign(ng-show="agent.agentUpgradeAvailable || agent.shellUpgradeAvailable" ng-click='upgradeAgent(agent)')
+			i(title="upgrade agent").glyphicon.glyphicon-exclamation-sign(ng-show="agent.status=='READY' && (agent.agentUpgradeAvailable || agent.shellUpgradeAvailable)" ng-click='upgradeAgent(agent)')
 			i.glyphicon(ng-show="!agent.agentUpgradeAvailable && !agent.shellUpgradeAvailable")&nbsp;
 			&nbsp;&nbsp;
 			i.glyphicon.glyphicon-hdd.agent-ready( ng-show="agent.status=='READY'")
