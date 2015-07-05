@@ -1,7 +1,8 @@
 var fileControl = require('../routes/file-control');
 
-var KnowhowShell = require('knowhow-shell');
-//var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
+var KnowhowShellPath = '';
+//var KnowhowShellPath = '../../';
+var KnowhowShell = require(KnowhowShellPath+'knowhow-shell');
 var KHShell = new KnowhowShell(eventEmitter);
 var async = require('async');
 
@@ -15,7 +16,7 @@ var getPackageVersion = function(packageName, callback) {
 	  "id": "get package version",
 	  "working_dir": "/tmp/KHAgent",
 	  "options": {
-	    "timeoutms": 40000,
+	    "timeoutms": 60000,
 	    "noEcho": true
 	  },
 	  "files": [],
@@ -31,7 +32,6 @@ var getPackageVersion = function(packageName, callback) {
 	    ]
 	  }
 	}
-	var KnowhowShell = require('knowhow-shell');
 	var knowhowShell = new KnowhowShell();
 	knowhowShell.executeJobAsSubProcess(versionJob, function(err, jobRuntime) {
 		if(err) {
@@ -46,7 +46,6 @@ var getPackageVersion = function(packageName, callback) {
 };
 
 var getGlobalInstallVersion = function(packageName, callback) {
-	var KnowhowShell = require('knowhow-shell');
 	var knowhowShell = new KnowhowShell();
 	knowhowShell.executeSingleCommand("npm -g view "+packageName+" version", function(err, runTime) {
 		if (err || !runTime || !runTime.output) {
@@ -67,7 +66,7 @@ var getGlobalInstallVersion = function(packageName, callback) {
 var getInstalledVersions = function(callback) {
 
 	var knowhowServer = require('../package.json');
-	var knowhowShell = require('knowhow-shell/package.json');
+	var knowhowShell = require(KnowhowShellPath+'knowhow-shell/package.json');
 	//var knowhowApi = require('knowhow-api/package.json');
 	//var knowhowServer = require('knowhow-server/package.json');
 	//var knowhowAgent = require('knowhow-agent/package.json');

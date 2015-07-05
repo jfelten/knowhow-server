@@ -16,7 +16,7 @@ var domain = require('domain');
 var url = require('url') ;
 
 var KnowhowShell = require('knowhow-shell');
-
+//var KnowhowShell = require('../../knowhow-shell/knowhow-shell');
 
 var baseDirs = ["environments", "jobs", "workflows"];
 
