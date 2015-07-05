@@ -29,13 +29,14 @@ var usernameVar = "unknown";
 
 
 
-var getServerInfo = function(userName, newestVersions) {
+var getServerInfo = function(userName, server) {
 
 	
     var os = require("os");
     var pjson = require('../package.json');
 	serverInfo = {
 		  		version: pjson.version,
+		  		nodeVersion: process.version,
 		  		copyright: moment().format('YYYY'),
 				name: os.hostname(),
 			    started: startTime,
@@ -363,7 +364,7 @@ var runningJobList = function(req, res) {
 var api = function(server, callback) {
 	this.server = server;
 	username(function (err, userName) {
-		this.serverInfo = getServerInfo(userName);
+		this.serverInfo = getServerInfo(userName, server);
 		require('./upgrade-control')(this.server).getNewestVersions(function(err, versions) {
 			this.serverInfo.newestVersions = versions;
 		});

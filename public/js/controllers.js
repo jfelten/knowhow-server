@@ -13,7 +13,6 @@ var myModule = angular.module('myApp.controllers', []).
     success(function (data, status, headers, config) {
       $scope.serverInfo = data;
 	  $scope.upgradeAvailable = ($scope.serverInfo.newestVersions && ($scope.serverInfo.version < $scope.serverInfo.newestVersions['knowhow-server']));
-	  console.log($scope.upgradeAvailable+" "+$scope.serverInfo.version+" "+$scope.serverInfo.newestVersions['knowhow-server']);
     }).
     error(function (data, status, headers, config) {
       $scope.name = 'Error!';
