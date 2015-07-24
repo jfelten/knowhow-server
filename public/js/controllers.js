@@ -319,20 +319,20 @@ var myModule = angular.module('myApp.controllers', []).
     	 $scope.$broadcast('generated-input', {
 			    input: true,
 			    text: command.command,
-			    breakLine: true
+			    breakLine: true,
+			    start: true
 			});
 		$scope.scrollTerminalToBottom();
     });
-    socket.on('execution-complete', function(agent,command) {
+    socket.on('execution-output', function(agent,command) {
     	 //$scope.runningJobs[agent._id].output+=command.output
     	 $scope.output+=command.command+"\n";
     	 $scope.output+=command.output+"\n";
     	 var output = [];
     	 output.push(command.output);
     	 $scope.$broadcast('terminal-output', {
-		    output: true,
 		    text: output,
-		    breakLine: true
+		    breakLine: false
 		});
 		$scope.scrollTerminalToBottom();
     	 

@@ -17,6 +17,16 @@
     color: red;
 }
 
+.terminal-line-start{
+    margin:0;
+    padding:0;
+    white-space:pre-wrap;
+    background-color:transparent;
+    border: none;
+    border-radius: 0;
+    color: blue;
+}
+
 pre.terminal-line {
 	color: green;
 }

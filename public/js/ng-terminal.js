@@ -287,6 +287,7 @@ angular.module('vtortola.ng-terminal', [])
         replace:true,
         template: "<section class='terminal' ng-paste='handlePaste($event)'><div class='terminal-viewport'><div id='terminal-results' class='terminal-results'></div><span class='terminal-prompt' ng-show='showPrompt'>{{prompt.text}}</span><span class='terminal-input'>{{commandLine}}</span><span class='terminal-cursor'>_</span><input type='text' ng-model='commandLine' class='terminal-target'/></div><div ng-transclude></div></section>",
         errorTemplate: "<section class='terminal' ng-paste='handlePaste($event)'><div class='terminal-viewport'><div id='terminal-results' class='terminal-results-error'></div><span class='terminal-prompt' ng-show='showPrompt'>{{prompt.text}}</span><span class='terminal-input'>{{commandLine}}</span><span class='terminal-cursor'>_</span><input type='text' ng-model='commandLine' class='terminal-target'/></div><div ng-transclude></div></section>",
+        commandStartTemplate: "<section class='terminal' ng-paste='handlePaste($event)'><div class='terminal-viewport'><div id='terminal-results' class='terminal-results-start'></div><span class='terminal-prompt' ng-show='showPrompt'>{{prompt.text}}</span><span class='terminal-input'>{{commandLine}}</span><span class='terminal-cursor'>_</span><input type='text' ng-model='commandLine' class='terminal-target'/></div><div ng-transclude></div></section>",
         compile: function compile(tElement, tAttrs, transclude) {
             return {
                 pre: function preLink(scope, element, attrs, controller) {
@@ -451,6 +452,8 @@ angular.module('vtortola.ng-terminal', [])
                                         line.className = 'terminal-line';
                                         if (newValue.error) {
                                         	line.className = 'terminal-line-error';
+                                        } else if (newValue.start) {
+                                        	line.className = 'terminal-line-start';
                                         }
                                         line.textContent += newValue.text[i];
                                         results[0].appendChild(line)
