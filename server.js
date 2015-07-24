@@ -13,7 +13,7 @@ stylus = require('stylus'),
 nib = require('nib'),
 routes = require('./routes'),
 fileControl = require('./routes/file-control'),
-AgentEventHandler = require('./routes/agent-events'),
+
 //http = require('http'),
 path = require('path');
 
@@ -112,7 +112,7 @@ function configureApp(http, app, api, workflowControl, upgradeControl) {
 	app.post('/api/agentEvent', api.agentEvent);
 	app.get('/api/agentEvent', api.agentEvent);
 	app.post('/api/execute', api.execute);
-	app.post('/api/cancelJob', api.cancelJob);
+	app.post('/api/cancelJob', api.cancelJobAPI);
 	app.get('/api/runningJobsList', api.runningJobList);
 	
 	//workflow api
@@ -172,9 +172,9 @@ function configureApp(http, app, api, workflowControl, upgradeControl) {
 
 
 //do a heartbeat check each minute and make sure socket connections are made
-var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
+var agentCheck = function(agentEventHandler, agentUtils, serverInfo) {
 	console.log("________________CHECKING AGENTS___________________");
-	agentControl.listAgents(serverInfo, function (err, agents) {
+	agentUtils.listAgents(serverInfo, function (err, agents) {
 		logger.debug(agents);
 		var agentConnects = new Array(agents.length);
 		for (agentIndex in agents) {
@@ -185,12 +185,12 @@ var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
 					return;
 				}
 				logger.info("contacting: "+this.agent.user+"@"+this.agent.host+":"+this.agent.port);
-				agentControl.heartbeat(this.agent, function (err, connectedAgent) {
+				agentUtils.heartbeat(this.agent, function (err, connectedAgent) {
 					if (err) {
 						connectedAgent.status='ERROR'
 						connectedAgent.message='no heartbeat';
-						agentControl.updateAgent(connectedAgent, function() {
-							agentControl.eventEmitter.emit('agent-update',connectedAgent);
+						agentUtils.updateAgent(connectedAgent, function() {
+							agentEventHandler.eventEmitter.emit('agent-update',connectedAgent);
 						});
 						logger.error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
 						callback(new Error("unable to contact agent: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port));
@@ -198,12 +198,13 @@ var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
 					};
 					logger.info("received heartbeat from: "+connectedAgent.user+"@"+connectedAgent.host+":"+connectedAgent.port);
 					if (!agentEventHandler.agentSockets || !agentEventHandler.agentSockets[connectedAgent._id] || !agentEventHandler.agentSockets[connectedAgent._id].eventSocket) {
+						console.log(agentEventHandler);
 						agentEventHandler.listenForAgentEvents(connectedAgent, function(err, registeredAgent) {
 							if(err) {
 								registeredAgent.status='ERROR'
 								registeredAgent.message='event socket error';
-								agentControl.updateAgent(registeredAgent, function() {
-									agentControl.eventEmitter.emit('agent-update',registeredAgent);
+								agentUtils.agentUtils.updateAgent(registeredAgent, function() {
+									agentEventHandler.eventEmitter.emit('agent-update',registeredAgent);
 								});
 								
 								logger.error("unable to receive events for: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
@@ -219,8 +220,8 @@ var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
 							if(err) {
 								registeredAgent.status='ERROR'
 								registeredAgent.message='file socket error';
-								agentControl.updateAgent(registeredAgent, function() {
-									agentControl.eventEmitter.emit('agent-update',registeredAgent);
+								agentUtils.updateAgent(registeredAgent, function() {
+									agentEventHandler.eventEmitter.emit('agent-update',registeredAgent);
 								});
 								logger.error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port);
 								callback(new Error("unable to upload files to: "+registeredAgent.user+"@"+registeredAgent.host+":"+registeredAgent.port));
@@ -233,8 +234,8 @@ var agentCheck = function(agentEventHandler, agentControl, serverInfo) {
 					connectedAgent.status='READY'
 					connectedAgent.message='';
 					connectedAgent.progress=0;
-					agentControl.updateAgent(connectedAgent, function() {
-						agentControl.eventEmitter.emit('agent-update',connectedAgent);
+					agentUtils.updateAgent(connectedAgent, function() {
+						agentEventHandler.eventEmitter.emit('agent-update',connectedAgent);
 					});
 					
 				});
@@ -280,9 +281,11 @@ var KHServer = function(port, callback) {
 	self.app = express();
 	self.http = require('http').Server(self.app);
 	self.io = require('socket.io')(self.http);
-	self.agentEventHandler = new AgentEventHandler(self.io);
-	self.agentControl = require('./routes/agent-control');
-	self.executionControl = require('./routes/execution-control');
+	self.jobControl = require('./routes/job/job-control')();
+	self.agentEventHandler = new require('./routes/agent/agent-events')(self.io,self.jobControl);
+	self.executionControl = require('./routes/execution-control')(self);
+	self.agentInstaller = require('./routes/agent/agent-installer');
+	self.agentUtils = require('./routes/agent/agent-utils');
 	self.workflowControl = require('./routes/workflow-control')(self);
 	require('./routes/api.js')(this, function(err, api) {
 		self.api=api;
@@ -291,9 +294,9 @@ var KHServer = function(port, callback) {
 		configureApp(self.http, self.app, self.api, self.workflowControl, self.upgradeControl);
 		
 		
-		agentCheck(self.agentEventHandler, self.agentControl, self.serverInfo);
+		agentCheck(self.agentEventHandler, self.agentUtils, self.serverInfo);
 		self.thisServerCheck = function () {
-			agentCheck(self.agentEventHandler, self.agentControl, self.serverInfo);
+			agentCheck(self.agentEventHandler, self.agentUtils, self.serverInfo);
 		}
 		setInterval(self.thisServerCheck,60000);
 		start(self.http,port,callback);
