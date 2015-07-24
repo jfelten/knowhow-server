@@ -1,0 +1,68 @@
+{
+  "id": "creates an all-in-one install",
+  "working_dir": "./",
+  "options": {
+    "timeoutms": 360000
+  },
+  "files": [],
+  "script": {
+    "env": {
+      "PATH": "/opt/local/bin:/opt/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "NODE_URL": "https://nodejs.org/dist/v0.12.6/node-v0.12.6-darwin-x64.tar.gz",
+      "NODE_INSTALL_FILE": "node-v0.12.6-darwin-x64.tar.gz",
+      "AGENT_DIR": "/tmp/agent",
+      "AGENT_SERVER_LOCATION": "",
+      "HOME": "/USers/johnfelten"
+    },
+    "commands": [
+      {
+        "command": "OS_NAME=`uname -s`"
+      },
+      {
+        "command": "PLATFORM=`uname -m`"
+      },
+      {
+        "command": "mkdir -p ${AGENT_DIR}"
+      },
+      {
+        "command": "cd ${AGENT_DIR}"
+      },
+      {
+        "command": "npm install knowhow-agent"
+      },
+      {
+        "command": "cd node_modules/knowhow-agent"
+      },
+      {
+        "command": "wget ${NODE_URL}"
+      },
+      {
+        "command": "tar xzf ${NODE_INSTALL_FILE}"
+      },
+      {
+        "command": "rm -f ${NODE_INSTALL_FILE}"
+      },
+      {
+        "command": "AGENT_VERSION=`node-*/bin/node printVersion.js`"
+      },
+      {
+        "command": "cd node-v*"
+      },
+      {
+        "command": "rm -rf ChangeLog README.md share/ LICENSE lib/ include/"
+      },
+      {
+        "command": "cd .."
+      },
+      {
+        "command": "AGENT_FILE_NAME=agent_${AGENT_VERSION}_${OS_NAME}_${PLATFORM}.tar.gz"
+      },
+      {
+        "command": "tar czf ${AGENT_FILE_NAME} ./*"
+      },
+      {
+        "command": "echo 'scp ${AGENT_FILE_NAME} agent_file_location'"
+      }
+    ]
+  }
+}

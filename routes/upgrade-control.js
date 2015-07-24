@@ -9,7 +9,7 @@ var async = require('async');
 var EventEmitter = require('events').EventEmitter;
 var eventEmitter = new EventEmitter();
 var logger=require('./log-control').logger;
-
+var agentUtils = require('./agent/agent-utils');
 var getPackageVersion = function(packageName, callback) {
 	
 	var versionJob = {
@@ -155,7 +155,7 @@ var upgradeAgent = function(agent, server, callback) {
 	 
 	 fileControl.load("InternalRepo:///jobs/knowhow/upgradeKnowhow.json", function(err,content) {
 	 	var job = JSON.parse(content);
-		server.agentControl.loadAgent(agent, function (agentError, loadedAgent) {
+		agentUtils.loadAgent(agent, function (agentError, loadedAgent) {
 			if (agentError) {
 				callback(agentError);
 			} else {
@@ -170,7 +170,7 @@ var upgradeAgent = function(agent, server, callback) {
 			 				agent.progress=1;
 	 						agent.status='INSTALLING'
 	 						agent.message='Upgrading...';
-	 						server.agentControl.eventEmitter.emit('agent-update', agent);
+	 						server.agentEventHandler.eventEmitter.emit('agent-update', agent);
 			 				callback(undefined, finishedJob);
 			 			}
 			 		},
@@ -183,10 +183,10 @@ var upgradeAgent = function(agent, server, callback) {
 				 			loadedAgent.status = 'READY';
 				 			delete loadedAgent.shellUpgradeAvailable;
 				 			delete loadedAgent.agentUpgradeAvailable;
-				 			server.agentControl.updateAgent(loadedAgent, function() {});
-				 			server.agentControl.eventEmitter.emit('agent-update', loadedAgent);
+				 			agentUtils.updateAgent(loadedAgent, function() {});
+				 			server.agentEventHandler.eventEmitter.emit('agent-update', loadedAgent);
 				 		} else {
-					 		server.agentControl.resetAgent(loadedAgent, server.agentEventHandler, server.serverInfo, function(err) {
+					 		server.agentInstaller.resetAgent(loadedAgent, server.agentEventHandler, server.serverInfo, function(err) {
 					 			if(err) {
 						 			 //agent.progress=1;
 									 //agent.status='ERROR'
@@ -195,9 +195,68 @@ var upgradeAgent = function(agent, server, callback) {
 						 		} else {
 					 				loadedAgent.message = 'Upgrade complete. Restarting';
 				 					loadedAgent.status = 'READY';
-				 					server.agentControl.updateAgent(loadedAgent, function() {});
-				 					server.agentControl.eventEmitter.emit('agent-update', loadedAgent);
-				 					server.agentControl.updateAgent(loadedAgent, function() {});
+				 					agentUtils.updateAgent(loadedAgent, function() {});
+				 					server.agentEventHandler.eventEmitter.emit('agent-update', loadedAgent);
+				 					agentUtils.updateAgent(loadedAgent, function() {});
+					 			}
+					 		});
+					 	}
+					 }
+			 	);
+			 }
+		});
+	 });
+
+}
+
+var upgradeAgentViaTarBall = function(agent, server, callback) {
+
+	 
+	 fileControl.load("InternalRepo:///jobs/knowhow/upgradeKnowhow.json", function(err,content) {
+	 	var job = JSON.parse(content);
+		agentUtils.loadAgent(agent, function (agentError, loadedAgent) {
+			if (agentError) {
+				callback(agentError);
+			} else {
+			
+			 	server.executionControl.executeJob(loadedAgent, job, function(err, finishedJob) {
+			 			logger.info("submitted upgrade request");
+			 			if(err) {
+			 				logger.error(err.message);
+			 				logger.error(err.stack);
+			 				callback(err);
+			 			} else {
+			 				agent.progress=1;
+	 						agent.status='INSTALLING'
+	 						agent.message='Upgrading...';
+	 						server.agentEventHandler.eventEmitter.emit('agent-update', agent);
+			 				callback(undefined, finishedJob);
+			 			}
+			 		},
+			 		function(err, finishedJob) {
+			 			logger.debug("upgrade callback");
+				 		if(err) {
+				 			//logger.error(err.message);
+				 			logger.error(finishedJob);
+				 			loadedAgent.message = 'Upgrade failed. '+finishedJob.message;
+				 			loadedAgent.status = 'READY';
+				 			delete loadedAgent.shellUpgradeAvailable;
+				 			delete loadedAgent.agentUpgradeAvailable;
+				 			agentUtils.updateAgent(loadedAgent, function() {});
+				 			server.agentEventHandler.eventEmitter.emit('agent-update', loadedAgent);
+				 		} else {
+					 		server.agentInstaller.resetAgent(loadedAgent, server.agentEventHandler, server.serverInfo, function(err) {
+					 			if(err) {
+						 			 //agent.progress=1;
+									 //agent.status='ERROR'
+									 //agent.message='Upgrade Failed';
+									 //server.agentControl.eventEmitter.emit('agent-update', agent);
+						 		} else {
+					 				loadedAgent.message = 'Upgrade complete. Restarting';
+				 					loadedAgent.status = 'READY';
+				 					agentUtils.updateAgent(loadedAgent, function() {});
+				 					server.agentEventHandler.eventEmitter.emit('agent-update', loadedAgent);
+				 					agentUtils.updateAgent(loadedAgent, function() {});
 					 			}
 					 		});
 					 	}
@@ -214,7 +273,7 @@ var upgradeAgent = function(agent, server, callback) {
  */
  var upgradeAllAgents = function(server, callback) {
  
- 	server.agentControl.listAgents(server.serverInfo, function (err, agents) {
+ 	agentUtils.listAgents(server.serverInfo, function (err, agents) {
 				if (err) {
 					callback(err);
 				} else {

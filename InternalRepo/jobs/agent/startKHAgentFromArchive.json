@@ -1,0 +1,59 @@
+{
+  "id": "install KH Agent",
+  "working_dir": "/tmp/KHAgent",
+  "options": {
+    "timeoutms": 20000
+  },
+  "files": [],
+  "shell": {
+    "command": "ssh",
+    "args": [
+      "-o",
+      "StrictHostKeyChecking=no",
+      "-o",
+      "PreferredAuthentications=keyboard-interactive,password",
+      "${USER}@${HOST}"
+    ],
+    "onConnect": {
+      "timeoutms": 10000,
+      "responses": {
+        "[Pp]assword:": "${PASSWORD}"
+      },
+      "waitForPrompt": "[#$]",
+      "errorConditions": [
+        "timed out",
+        "denied"
+      ]
+    },
+    "onExit": {
+      "command": "exit\r\n"
+    }
+  },
+  "script": {
+    "env": {
+      "USER": "",
+      "PASSWORD": "",
+      "HOST": "",
+      "AGENT_ID": "",
+      "AGENT_DIR": "/tmp/${AGENT_ID}",
+      "AGENT_ARCHIVE": ""
+    },
+    "commands": [
+      {
+        "command": "mkdir -p ${AGENT_DIR}"
+      },
+      {
+        "command": "cd ${AGENT_DIR}"
+      },
+      {
+        "command": "tar xvf ${AGENT_ARCHIVE}"
+      },
+      {
+    	  "command": "AGENT_ARGS=\"--port=${PORT} --user=${USER} --login=${LOGIN} --_id=${AGENT_ID} --mode=${MODE} --workingDir=./\""
+      },
+      {
+    	  "command": "nohup node-*/bin/node agent.js ${AGENT_ARGS} > /dev/null 2>&1&"
+      }
+    ]
+  }
+}

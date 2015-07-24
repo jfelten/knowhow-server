@@ -51,7 +51,7 @@ initAgents = function(credentials, agents, eventHandler, serverInfo, callback) {
 			logger.debug("initAgent status="+initAgent.status);
 			if (initAgent.status != 'READY') {
 				logger.debug(initAgent);
-				agentControl.deleteAgent(initAgent, function(err, numRemoved) {
+				agentUtils.deleteAgent(initAgent, function(err, numRemoved) {
 					if (err) {
 						logger.error("unable to delete agent: "+initAgent.login+"@"+initAgent.host+":"+initAgent.port);
 						callback(err, agents);
@@ -73,7 +73,7 @@ initAgents = function(credentials, agents, eventHandler, serverInfo, callback) {
 					}
 					
 					logger.info("initializing agent: "+newAgent.user+"@"+newAgent.host+":"+newAgent.port);
-					agentControl.addAgent(newAgent, eventHandler, serverInfo, function (err) {
+					agentInstaller.addAgent(newAgent, eventHandler, serverInfo, function (err) {
 						if (err) {
 							callback(err);
 						} else {
@@ -124,7 +124,8 @@ var loadAgentsForEnvironmentAPICall = function(req, res) {
 loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callback) {
 
 	if (environment.agents) {
-	  	var agentControl = this.server.agentControl;
+	  	var agentUtils = this.server.agentUtils;
+	  	var agentInstaller = this.server.agentInstaller;
 		this.environment = environment;
 		console.log("loading "+Object.keys(environment.agents).length+" agents.");
 		console.log(environment.agents);
@@ -132,15 +133,15 @@ loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callb
 				var envAgent = environment.agents[designation];
 				logger.debug("loading agent for: "+envAgent.designation);
 				logger.debug(envAgent);
-				agentControl.loadAgent(envAgent, function(err, loadedAgent) {
+				agentUtils.loadAgent(envAgent, function(err, loadedAgent) {
 					if (loadedAgent && loadedAgent.status =="READY" ) {
 						environment.agents[designation]=loadedAgent;
 						cb();
 					} else {
 						console.log("no agent found for: "+designation);
 						console.log(environment.agents[this.designation]);
-						agentControl.deleteAgent(envAgent, function(err, numRemoved) {
-							agentControl.addAgent(envAgent, eventHandler, this.server.api.serverInfo, function(err, newAgent) {
+						agentUtils.deleteAgent(envAgent, function(err, numRemoved) {
+							agentInstaller.addAgent(envAgent, eventHandler, this.server.api.serverInfo, function(err, newAgent) {
 								console.log("added agent found for: "+designation+" "+envAgent.port);
 								if (err) {
 									cb(err);
@@ -176,7 +177,7 @@ loadAgentsForEnvironment = function(environment, eventHandler, serverInfo, callb
 	}
 }
 
-var execute = function(environment,workflow, executeControl, agentControl, callback) {
+var execute = function(environment,workflow, executeControl, agentUtils, agentInstaller, callback) {
 
 	var agents = workflow.agents;
 			
@@ -200,7 +201,7 @@ var execute = function(environment,workflow, executeControl, agentControl, callb
 				
 				logger.debug(task);
 				this.initTasks[taskIndex] = function (icallback) {
-					initRunningTask(environment,this.task, executeControl, agentControl, function(err, initializedTask){
+					initRunningTask(environment,this.task, executeControl, agentUtils, function(err, initializedTask){
 						if (err) {
 							icallback(err);
 							return;
@@ -313,7 +314,7 @@ var executeWorkflowAPICall = function(req, res) {
 	var environment = req.body.environment;
 	var workflow = req.body.workflow;
 	if (environment && workflow && environment.agents) {
-		execute(environment, workflow, this.server.executionControl, this.server.agentControl, function(err, runWorkflow) {
+		execute(environment, workflow, this.server.executionControl, this.server.agentUtils, this.server.agentInstaller, function(err, runWorkflow) {
 			if (err) {
 				logger.error(err.stack);
 				logger.error(err.message);
@@ -391,7 +392,7 @@ paralellTask = function(environment, task, executeControl, pcallback) {
 	
 };
 
-var initRunningTask = function(environment, task, executeControl, agentControl, callback) {
+var initRunningTask = function(environment, task, executeControl, agentUtils, callback) {
 
 	if (!task.id) {
 		callback(new Error("Missing task.id"));
@@ -406,7 +407,7 @@ var initRunningTask = function(environment, task, executeControl, agentControl, 
 		callback(new Error("no agents defined for "+task.id));
 	}
 	init = function(loadedTask) {
-		loadTaskAgents(environment, loadedTask, agentControl, function(err) {
+		loadTaskAgents(environment, loadedTask, agentUtils, function(err) {
 			if (err) {
 				logger.error(err.message);
 				callback(err);
@@ -505,13 +506,13 @@ var initRunningTask = function(environment, task, executeControl, agentControl, 
 	
 };
 
-var loadTaskAgents = function(environment, task, agentControl, callback) {
+var loadTaskAgents = function(environment, task, agentUtils, callback) {
 	logger.debug(task.agents);
 	async.eachSeries(task.agents, function(taskAgent, cb) {
 		var designation = taskAgent.agent;
 		logger.debug("loading agent info for: "+designation);
 		if (environment.agents[designation]) {
-			agentControl.loadAgent(environment.agents[designation], function(err, loadedAgent) {
+			agentUtils.loadAgent(environment.agents[designation], function(err, loadedAgent) {
 				taskAgent.agentObject = loadedAgent;
 				cb();
 			});
@@ -600,10 +601,10 @@ var lookupEnvironmentForAgent = function(agent, callback) {
 	callback(undefined);
 };
 
-var handleWorkflowEvents = function(agentControl, executeControl) {
+var handleWorkflowEvents = function(agentEventHandler, executeControl) {
 
 	logger.info("listening for events");
-	agentControl.eventEmitter.on('agent-error', function(agent) {
+	agentEventHandler.eventEmitter.on('agent-error', function(agent) {
 		if (agent) {
 			lookupEnvironmentForAgent(agent, function(environment) {
 			//see if the agent is part of a running task
@@ -621,7 +622,7 @@ var handleWorkflowEvents = function(agentControl, executeControl) {
 		
 	});
 
-	agentControl.eventEmitter.on('agent-delete', function(agent) {
+	agentEventHandler.eventEmitter.on('agent-delete', function(agent) {
 		var environmentId = agent.environmentId;
 		if (agent) {
 			if (agent) {
@@ -751,7 +752,7 @@ var WorkflowControl = function(server) {
 	self.executeWorkflowAPICall=executeWorkflowAPICall.bind({server: self.server});
 	self.initAgentsAPICall = initAgentsAPICall.bind({server: self.server});
 	
-	handleWorkflowEvents(server.agentControl, server.executionControl);
+	handleWorkflowEvents(server.agentEventHandler, server.executionControl);
 	
 	return self;
 }	
