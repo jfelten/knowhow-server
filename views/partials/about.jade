@@ -57,7 +57,7 @@
 				| lastest: {{serverInfo.newestVersions["knowhow-shell"]}}
 			.col-sm-2.col-md-2.col-lg-2(ng-show = "serverInfo.newestVersions['knowhow-shell'] == serverInfo.installedVersions['knowhow-shell']")
 				| lastest: {{serverInfo.newestVersions["knowhow-shell"]}}
-		.row(ng-show = "update_message != 'checking for updates...' && upgradeAvailable")
+		.row(ng-show = "false && update_message != 'checking for updates...' && upgradeAvailable")
 			.col-sm-3.col-md-3.col-lg-3
 				button.btn.btn-primary(ng-click='openUpgradeModal(serverInfo)' ) Upgrade Now
 			
