@@ -3,87 +3,142 @@ var agentUtils = require('./agent-utils');
 
 var io;
 
+/**
+ * configures event socket listener
+ */
 function listenForEvents(agent, socket) {
-		var jobControl = this.jobControl;
-		var eventEmitter = this.eventEmitter;
+	var jobControl = this.jobControl;
+	var eventEmitter = this.eventEmitter;
+	
+	socket.on('execution-start', function(command) {
+		if (command) {
+			logger.debug("execution start");
+			logger.debug(command);
+			eventEmitter.emit('execution-start',agent, command);
+		}
 		
-		socket.on('execution-start', function(command) {
-    		if (command) {
-				logger.debug("execution start");
-				logger.debug(command);
-				eventEmitter.emit('execution-start',agent, command);
-			}
-			
-		});
+	});
 
-		socket.on('execution-complete', function(command) {
-    		if (command) {
-				logger.debug("execution complete");
-				logger.debug(command);
-				eventEmitter.emit('execution-complete',agent, command);
-			}
-			
-		});
-		socket.on('execution-error', function(command) {
-    		if (command) {
-				logger.debug("execution error: ");
-				logger.debug(command);
-				eventEmitter.emit('execution-error',agent, command);
-			}
-			
-		});
-		socket.on('execution-output', function(output) {
-			logger.debug("execution-output");
-    		if (output) {
-				logger.debug("execution-output="+output.output);
-				eventEmitter.emit('execution-output',agent, output);
-			}
-			
-		});
+	socket.on('execution-complete', function(command) {
+		if (command) {
+			logger.debug("execution complete");
+			logger.debug(command);
+			eventEmitter.emit('execution-complete',agent, command);
+		}
 		
-		socket.on('execution-password-prompt', function(command) {
-    		if (command) {
-				logger.debug("execution error");
-				eventEmitter.emit('execution-password-prompt',agent, command);
-			}
-			
-		});
+	});
+	socket.on('execution-error', function(command) {
+		if (command) {
+			logger.debug("execution error: ");
+			logger.debug(command);
+			eventEmitter.emit('execution-error',agent, command);
+		}
 		
+	});
+	socket.on('execution-output', function(output) {
+		logger.debug("execution-output");
+		if (output) {
+			logger.debug("execution-output="+output.output);
+			eventEmitter.emit('execution-output',agent, output);
+		}
 		
-		socket.on('job-update', function(job){
-    		if (job) {
-				logger.debug("job update");
-				logger.debug(job.id+" progress="+job.progress+" status="+job.status);
-				jobControl.updateJob(agent, job, this.eventEmitter, function() {
-					eventEmitter.emit('job-update',agent, job);
-				});
-			}
-			
+	});
+	
+	socket.on('execution-password-prompt', function(command) {
+		if (command) {
+			logger.debug("execution error");
+			eventEmitter.emit('execution-password-prompt',agent, command);
+		}
+		
+	});
+	
+	
+	socket.on('job-update', function(job){
+		if (job) {
+			logger.debug("job update");
+			logger.debug(job.id+" progress="+job.progress+" status="+job.status);
+			jobControl.updateJob(agent, job, this.eventEmitter, function() {
+				eventEmitter.emit('job-update',agent, job);
+			});
+		}
+		
+	});
+	socket.on('job-complete', function(job){
+		if (job) {
+			logger.info('Completed Job: '+job.id+" on "+agent.host+":"+agent.port+"("+agent._id+")");
+			jobControl.completeJob(agent, job, eventEmitter);
+		}
+		//jobControl.eventEmitter.emit('job-complete',agent, job);
+	});
+	socket.on('job-error', function(job){
+		if (job) {
+			logger.info('Stopping Job: '+job.id+ ' due to error on agent('+agent._id+') '+agent.user+'@'+agent.host+':'+agent.port);
+			//agentSockets[agent._id].eventSocket.emit('job-cancel',job);
+			jobControl.cancelJob(agent, job, eventEmitter);
+			eventEmitter.emit('job-error',agent, job);
+		} else {
+			logger.error("empty job error message received.");
+		}
+	});
+	socket.on('job-cancel', function(job){
+		logger.debug("job-cancel message received");
+		if (job) {
+			logger.info('job: '+job.id+ ' cancelled.');
+			jobControl.cancelJob(agent, job, eventEmitter);
+		}
+	});
+
+}
+
+/**
+ * configures file socket
+ */
+var configureFileSocket = function(agent, socket) {
+    logger.info("connected to "+agent.host+':'+agent.port+" now accepting uploads.");
+    
+    var connectEvents = function(agent, socket) {
+		socket.on('End' ,function (job) {
+			  logger.info(job);
+		      if (job) {
+			      logger.info("done uploading for job: "+job.id);
+			      jobControl.uploadComplete(agent, job,eventEmitter);
+			   }
+			      
+		    });
+		socket.on('Error', function(data) {
+			if (data) {
+	    		logger.error("file transfer error: "+data.message);
+	        	//agentSockets[agent._id].fileSocket.emit('client-upload-error', {name: data.fileName, jobId: data.jobId} );
+	        	var job = jobControl.lookupJob(data.jobId);
+	        	jobControl.cancelJob(agent, job, eventEmitter);
+	        }
+	
 		});
-		socket.on('job-complete', function(job){
-			if (job) {
-				logger.info('Completed Job: '+job.id+" on "+agent.host+":"+agent.port+"("+agent._id+")");
-				jobControl.completeJob(agent, job, eventEmitter);
-			}
-			//jobControl.eventEmitter.emit('job-complete',agent, job);
-		});
-		socket.on('job-error', function(job){
-			if (job) {
-				logger.info('Stopping Job: '+job.id+ ' due to error on agent('+agent._id+') '+agent.user+'@'+agent.host+':'+agent.port);
-				//agentSockets[agent._id].eventSocket.emit('job-cancel',job);
-				jobControl.cancelJob(agent, job, eventEmitter);
-				eventEmitter.emit('job-error',agent, job);
-			} else {
-				logger.error("empty job error message received.");
-			}
-		});
-		socket.on('job-cancel', function(job){
-			logger.debug("job-cancel message received");
-			if (job) {
-				logger.info('job: '+job.id+ ' cancelled.');
-				jobControl.cancelJob(agent, job, eventEmitter);
-			}
-		});
+	}
+	
+	socket.on('disconnect' ,function () {
+		logger.info("file socket disconnected");
+		agentSockets[agent._id].fileSocket.removeAllListeners();
+		agentSockets[agent._id].fileSocket.close();
+		delete agentSockets[agent._id].fileSocket;
+	});
+	
+	socket.on('reconnect' ,function () {
+		logger.info("file socket reconnected");
+		connectEvents(agent, socket);
+		
+		//callback(undefined,agent);
+	});
+	
+	socket.on('error' ,function () {
+		logger.info("unable to connect to file socket.");
+		//callback(new Error("unable to connect to file socket."),agent);
+	});
+	
+	socket.on('connect' ,function () {
+		connectEvents(agent, socket);
+	});
+	
 
 }
 
@@ -99,10 +154,8 @@ var listenForAgentEventConnection = function(io) {
 		//listenForAgentEvents(agent,socket)
 		eventListener.on('register-agent', function (agent) {
 			logger.info('adding file socket for: '+agent.user+'@'+agent.host+':'+agent.port);
-			openFileSocket(agent,socket, function() {
-				logger.info('added file socket for: '+agent.user+'@'+agent.host+':'+agent.port);
-			});
-			
+			agentSockets[agent._id].eventSocket = socket;
+			listenForEvents(agent, socket)
 		});
 		
 	});
@@ -119,7 +172,8 @@ var listenForAgentFileConnection  = function(io) {
 			logger.info('new file socket connected');
 			fileListener.on('register-agent', function (agent) {
 				logger.info('adding event listener for: '+agent.user+'@'+agent.host+':'+agent.port);
-				listenForAgentEvents(agent,socket)
+				agentSockets[agent._id].fileSocket = socket;
+				configureFileSocket(agent, agentSockets[agent._id].fileSocket); 
 			});
 		});
 };
@@ -208,72 +262,8 @@ function openFileSocket(agent, callback) {
 	logger.info('connecting to: http://'+agent.host+':'+agent.port+'/upload');
 	agentSockets[agent._id].fileSocket = require('socket.io-client')('http://'+agent.host+':'+agent.port+'/upload');
 	agentSockets[agent._id].fileSocket.open();
-
 	
-	agentSockets[agent._id].fileSocket.on('disconnect' ,function () {
-		logger.info("file socket disconnected");
-		agentSockets[agent._id].fileSocket.removeAllListeners();
-		agentSockets[agent._id].fileSocket.close();
-		delete agentSockets[agent._id].fileSocket;
-	});
-	
-	agentSockets[agent._id].fileSocket.on('reconnect' ,function () {
-		logger.info("file socket reconnected");
-		agentSockets[agent._id].fileSocket.on('End' ,function (job) {
-		  logger.info(job);
-	      if (job) {
-		      logger.info("done uploading for job: "+job.id);
-		      jobControl.uploadComplete(agent, job, eventEmitter);
-		   }
-		      
-	    });
-		agentSockets[agent._id].fileSocket.on ('Error', function(data) {
-			if (data) {
-	    		logger.error("socket error: "+data);
-	        	//agentSockets[agent._id].fileSocket.emit('client-upload-error', {name: data.fileName, jobId: data.jobId} );
-	        	var job = jobControl.lookupJob(data.jobId);
-	        	jobControl.cancelJob(agent, job, eventEmitter);
-	        }
-
-		});
-		agentSockets[agent._id].fileSocket.on ('Error', function(data) {
-			if (data) {
-	    		logger.error("file transfer error: "+data.message);
-	        	//agentSockets[agent._id].fileSocket.emit('client-upload-error', {name: data.fileName, jobId: data.jobId} );
-	        	var job = jobControl.lookupJob(data.jobId);
-	        	jobControl.cancelJob(agent, job, eventEmitter);
-	        }
-
-		});
-		//callback(undefined,agent);
-	});
-	
-	agentSockets[agent._id].fileSocket.on('error' ,function () {
-		logger.info("unable to connect to file socket.");
-		//callback(new Error("unable to connect to file socket."),agent);
-	});
-	
-	agentSockets[agent._id].fileSocket.on('connect' ,function () {
-		logger.info("connected to "+agent.host+':'+agent.port+" now accepting uploads.");
-		agentSockets[agent._id].fileSocket.on('End' ,function (job) {
-		  logger.info(job);
-	      if (job) {
-		      logger.info("done uploading for job: "+job.id);
-		      jobControl.uploadComplete(agent, job,eventEmitter);
-		   }
-		      
-	    });
-		agentSockets[agent._id].fileSocket.on ('Error', function(data) {
-			if (data) {
-	    		logger.error("file transfer error: "+data.message);
-	        	//agentSockets[agent._id].fileSocket.emit('client-upload-error', {name: data.fileName, jobId: data.jobId} );
-	        	var job = jobControl.lookupJob(data.jobId);
-	        	jobControl.cancelJob(agent, job, eventEmitter);
-	        }
-
-		});
-		
-	}); 
+	 
    	
 	callback(undefined,agent);
 };
