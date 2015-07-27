@@ -249,6 +249,7 @@ getStatus = function(callback) {
 registerServer = function(callback) {
 	var agent = this.agent;
 	var serverInfo = this.serverInfo;
+	var eventEmitter = this.eventEmitter;
 	if (!serverInfo) {
 		serverInfo = {};
 	}
@@ -293,7 +294,7 @@ registerServer = function(callback) {
 		    		callback();
 		    	} else {
 		    		agent.message = 'Unable to register server';
-		    		this.eventEmitter.emit('agent-error',agent);
+		    		eventEmitter.emit('agent-error',agent);
 		    		callback(new Error('Unable to register server'));
 		    	}
 		        logger.info('server registration complete');
@@ -306,7 +307,7 @@ registerServer = function(callback) {
 		reqPost.on('error', function(e) {
 		    logger.error("Unable to register server - connection error");
 		    agent.message = 'Unable to register server';
-			this.eventEmitter.emit('agent-error',agent);
+			eventEmitter.emit('agent-error',agent);
 			callback(e);
 		});
 	} catch (error ) {
@@ -319,6 +320,7 @@ registerServer = function(callback) {
 updateAgentInfoOnAgent = function(callback) {
 	var serverInfo = this.serverInfo
 	var agent = this.agent;
+	var eventEmitter = this.eventEmitter;
 	agent.status='READY';
 	agent.encyrptKey = serverInfo.cryptoKey;
 	agent.passwordEnc = agent.passwordEnc;
@@ -382,7 +384,7 @@ updateAgentInfoOnAgent = function(callback) {
 	reqPost.on('error', function(e) {
 	    logger.error("Unable to update agent properties - connection error");
 	    agent.message = 'Unable to update agent properties';
-		this.eventEmitter.emit('agent-error',agent);
+		eventEmitter.emit('agent-error',agent);
 		callback(e);
 	});
 
@@ -478,6 +480,7 @@ exports.waitForAgentStartup = waitForAgentStartup;
 
 deliverAgent = function(callback) {
     var agent = this.agent;
+    var eventEmitter = this.eventEmitter;
     agent.message = 'transferring agent bundle';
 	this.eventEmitter.emit('agent-update', agent);
 	var Client = require('scp2').Client;
@@ -520,7 +523,7 @@ deliverAgent = function(callback) {
 		logger.error(err.stack);
 		agent.progress=0;
 		agent.message = 'unable to transfer agent: '+err.message;
-		this.eventEmitter.emit('agent-error', agent);
+		eventEmitter.emit('agent-error', agent);
 		logger.error('error delivering agent: ', err);
 		callback(new Error("stop"));
 	});
